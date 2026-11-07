@@ -1,79 +1,107 @@
-# Nom du Projet
+# SkillQuest – Plateforme d'Apprentissage & Recrutement IT
 
-> **Projet AWD – Architecture Web Distribuée (Validation Intermédiaire)**  
-> **Classe :** [Ex: 4DAS16] | **Groupe :** [Ex: G3]
+> **Projet AWD – Architecture Web Distribuée (Validation Intermédiaire – Séance 4)**  
+> **Classe :** [Votre Classe, ex: 4DAS16] | **Groupe :** [Votre Groupe, ex: G3]
 
 ---
 
-## 👥 Membres de l'équipe & Répartition des Tâches
+## 👥 Membres de l'Équipe & Répartition des Rôles (6 Personnes)
 
-| Nom & Prénom | Microservice / Responsabilité | Rôle spécifique |
+| Membre | Microservice Attribué | Rôle & Responsabilité principale |
 | :--- | :--- | :--- |
-| **Membre 1** | Service Commun (ex: Auth / Notifications) | Conception & Lead API |
-| **Membre 2** | Microservice A | Dév & Schéma BD |
-| **Membre 3** | Microservice B | Dév & Schéma BD |
-| **Membre 4** | Microservice C | Dév & Schéma BD |
+| **Membre 1** | **Auth & Identity Service** *(Service Commun)* | Authentification multi-profils, JWT & Sécurité RBAC |
+| **Membre 2** | **Course & Learning Content Service** | Catalogue des cours, chapitres & suivi de progression |
+| **Membre 3** | **Code Execution & Sandbox Service** | Moteur d'exécution de code sécurisé & tests unitaires |
+| **Membre 4** | **Gamification & Certification Service** | Système d'XP, badges, classements & certificats vérifiables |
+| **Membre 5** | **Job Board & Recruitment Service** | Offres d'emploi tech, matching compétences & candidatures |
+| **Membre 6** | **Community & Peer-Review Service** | Forum d'entraide, partage de solutions & revue de code |
+| *(Tous)* | **Notification & Alert Service** | Alertes temps réel (WebSockets), push et e-mails |
 
 ---
 
 ## 📁 Organisation du Dépôt
 
 ```text
-nom-du-projet-classe-groupe/
-├── Backend/                     # Code source de l'ensemble des microservices
-├── Frontend/                    # Application cliente (Web / Mobile)
+skillquest-classe-groupe/
+├── Backend/                              # Tous les microservices backend
+│   ├── api-gateway/                      # Point d'entrée unique & routage
+│   ├── auth-service/                     # Service Commun (JWT / Utilisateurs)
+│   ├── course-service/                   # Microservice 1 (Cours & Contenu)
+│   ├── code-execution-service/           # Microservice 2 (Sandbox de code)
+│   ├── gamification-service/             # Microservice 3 (Badges & Certificats)
+│   ├── job-board-service/                # Microservice 4 (Recrutement tech)
+│   ├── community-service/                # Microservice 5 (Entraide & Peer-Review)
+│   └── notification-service/             # Microservice 6 (Alertes & WebSockets)
+├── Frontend/                             # Application cliente SPA (React / Vue / Angular)
 ├── Documentation/
-│   ├── Presentation/            # Support de présentation (Slides séance 4)
-│   ├── Diagrams/                # Diagrammes d'architecture, classes, séquence
-│   └── Dossier_Technique.md     # Dossier technique détaillé
-├── .gitignore                   # Fichiers et dossiers ignorés par Git
-└── README.md                    # Présentation générale du projet
+│   ├── Presentation/                     # Support de présentation (Slides Séance 4)
+│   ├── Diagrams/                         # Diagrammes d'architecture, classes et séquence
+│   └── Dossier_Technique.md              # Dossier technique complet (Word / LaTeX / MD)
+├── docker-compose.yml                    # Orchestration locale des conteneurs
+├── .gitignore                            # Fichiers ignorés par Git
+└── README.md                             # Documentation d'accueil du dépôt
 ```
 
 ---
 
-## 🎯 Problématique & Cas d'Utilisation
+## 🎯 Problématique & Présentation du Projet
 
-### 1. Idée générale & Problématique
-*Description du contexte métier, des besoins utilisateurs et des défis adressés par cette solution.*
+### 1. Contexte & Problématique
+Le recrutement dans le secteur informatique souffre d'un manque d'évaluation pratique des compétences réelles : un CV ne garantit pas la maîtrise du code. Parallèlement, les apprenants ont besoin de plateformes interactives où s'entraîner sur des cas concrets et faire valoir leurs compétences auprès des entreprises.
 
-### 2. Acteurs identifiés
-- **Acteur 1 (ex: Client / Candidat) :** Rôle et actions principales.
-- **Acteur 2 (ex: Recruteur / Vendeur) :** Rôle et actions principales.
-- **Acteur 3 (ex: Administrateur) :** Gestion de la plateforme et modération.
+### 2. Solution : SkillQuest
+**SkillQuest** associe formation interactive (*style Coursera*), évaluation algorithmique en bac à sable sécurisé (*style LeetCode*) et un portail de recrutement axé sur les compétences certifiées.
 
-### 3. Principales fonctionnalités
-- **Fonctionnalité 1 :** ...
-- **Fonctionnalité 2 :** ...
-- **Fonctionnalité 3 :** ...
+### 3. Acteurs du Système
+- **Apprenant / Développeur :** Se forme, soumet du code, gagne des badges d'XP et postule aux offres.
+- **Instructeur / Auteur :** Rédige les cours, modules, quiz et configure les tests unitaires des exercices.
+- **Recruteur Tech :** Publie des annonces d'emploi et recherche des candidats filtrés par compétences validées.
+- **Administrateur :** Modère le contenu, gère les accès et supervise les quotas de ressources de la sandbox.
 
 ---
 
-## 🏛️ Architecture Globale & Choix Technologiques
+## 🏗️ Architecture Globale & Découpage des Microservices
 
-### 1. Composants majeurs
-- **API Gateway :** Point d'entrée unique, gestion du routage, de la sécurité et du rate limiting.
-- **Microservices Métier :** Découpage indépendant avec base de données dédiée (Database-per-service).
-- **Service Commun :** Géré collectivement par l'équipe (ex: authentification JWT / service de logging).
-- **Frontend :** Application cliente communiquant exclusivement via l'API Gateway.
+Chaque microservice métier respecte le principe **Database-per-Service** et possède son propre contrat d'API :
 
-### 2. Microservices & Bases de données
-
-| Microservice | Responsabilité | Base de données | Type de communication |
+| Microservice | Responsable | Base de Données | Rôle Principal |
 | :--- | :--- | :--- | :--- |
-| *Service Commun* | Authentification / Token JWT | PostgreSQL / Redis | Synchrone (REST) |
-| *Service 1* | Gestion métier 1 | PostgreSQL / MongoDB | Synchrone & Asynchrone |
-| *Service 2* | Gestion métier 2 | MongoDB / MySQL | Asynchrone (Event-driven) |
-| *Service 3* | Traitement / Notifications | PostgreSQL | Asynchrone (Message Broker) |
+| **Auth & Identity** *(Commun)* | Membre 1 (Équipe) | **PostgreSQL** | Inscription, connexion, rôles RBAC, gestion des tokens JWT |
+| **Course Content** | Membre 2 | **MongoDB** | Arborescence des cours, chapitres, leçons et état d'avancement |
+| **Code Execution** | Membre 3 | **Redis + PostgreSQL** | Exécution de code isolée, tests unitaires et métriques |
+| **Gamification** | Membre 4 | **PostgreSQL** | Niveaux, points d'expérience (XP), badges et certificats PDF |
+| **Job Board** | Membre 5 | **MongoDB** | Annonces d'emploi, matching compétences-profil et candidatures |
+| **Community** | Membre 6 | **MongoDB** | Forums de discussion hiérarchiques, votes et revues de code |
+| **Notification** | Support transverse | **Redis + MongoDB** | Notifications WebSockets temps réel et e-mails transactionnels |
 
 ---
 
-## 📋 Prérequis & Démarrage
+## 🔄 Flux de Communication
 
+- **Communications Synchrones (REST) :**
+  - Le client communique uniquement via l'**API Gateway**.
+  - Le *Job Board Service* interroge le *Gamification Service* pour récupérer en direct les certifications d'un candidat sans dupliquer les données.
+- **Communications Asynchrones (Message Broker – RabbitMQ) :**
+  - Lorsqu'un utilisateur valide tous les tests d'un exercice, le *Code Execution Service* émet l'événement `CodeSolutionPassedEvent`.
+  - Le *Gamification Service* consomme cet événement et crédite +50 XP et un badge.
+  - Le *Course Content Service* marque la leçon comme validée.
+  - Le *Notification Service* pousse instantanément une alerte WebSocket sur le navigateur de l'étudiant.
+
+---
+
+## 🚀 Démarrage Rapide
+
+### Prérequis
+- Docker & Docker-Compose
+- Node.js (v18+) ou JDK 17+ (selon la stack choisie)
+- Git
+
+### Installation
 ```bash
-# 1. Cloner le dépôt
-git clone <URL_DU_DEPOT>
+# 1. Cloner le projet
+git clone <URL_DU_DEPOT_GIT>
+cd skillquest
 
-# 2. Se positionner dans le projet
-cd <NOM_DU_DOSSIER>
+# 2. Démarrer l'infrastructure complète avec Docker
+docker-compose up -d
 ```
