@@ -1,0 +1,67 @@
+flowchart TD
+    subgraph ClientLayer["Couche Client"]
+        Client["Application Frontend (SPA React / Vue)"]
+    end
+
+    subgraph GatewayLayer["Point d'Entrée Unique"]
+        Gateway["API Gateway (Port 8080)<br/>• Routage & Reverse-Proxy<br/>• Validation des Tokens JWT<br/>• Rate Limiting & CORS"]
+    end
+
+    subgraph CommonService["Service Commun (Équipe)"]
+        AuthSvc["Auth & Identity Service<br/>• Inscription / Connexion<br/>• Rôles (RBAC) & Sessions JWT"]
+        AuthDB[("PostgreSQL<br/>(Auth DB)")]
+        AuthSvc --- AuthDB
+    end
+
+    subgraph MicroservicesLayer["Microservices Métier (6 Membres)"]
+        CourseSvc["1. Course Content Service<br/>(Modules, Leçons, Progression)"]
+        CourseDB[("MongoDB<br/>(Courses DB)")]
+        CourseSvc --- CourseDB
+
+        CodeSvc["2. Code Execution Service<br/>(Sandbox isolée, Tests)"]
+        CodeRedis[("Redis<br/>(Queue de jobs)")]
+        CodeDB[("PostgreSQL<br/>(Soumissions)")]
+        CodeSvc --- CodeRedis
+        CodeSvc --- CodeDB
+
+        GamifSvc["3. Gamification Service<br/>(XP, Badges, Certificats)"]
+        GamifDB[("PostgreSQL<br/>(Gamif DB)")]
+        GamifSvc --- GamifDB
+
+        JobSvc["4. Job Board Service<br/>(Offres Tech, Matching)"]
+        JobDB[("MongoDB<br/>(Jobs DB)")]
+        JobSvc --- JobDB
+
+        CommSvc["5. Community Service<br/>(Forums, Entraide, Votes)"]
+        CommDB[("MongoDB<br/>(Forum DB)")]
+        CommSvc --- CommDB
+
+        NotifSvc["6. Notification Service<br/>(WebSockets & Alertes)"]
+        NotifRedis[("Redis<br/>(Sessions WS)")]
+        NotifSvc --- NotifRedis
+    end
+
+    subgraph BrokerLayer["Bus d'Événements Asynchrones"]
+        Broker{{"Message Broker (RabbitMQ)<br/>Exchange: skillquest.events"}}
+    end
+
+    %% Flux Client -> Gateway
+    Client -->|HTTPS / WSS| Gateway
+
+    %% Flux Gateway -> Microservices
+    Gateway -->|HTTP REST| AuthSvc
+    Gateway -->|HTTP REST| CourseSvc
+    Gateway -->|HTTP REST| CodeSvc
+    Gateway -->|HTTP REST| GamifSvc
+    Gateway -->|HTTP REST| JobSvc
+    Gateway -->|HTTP REST| CommSvc
+    Gateway -->|WebSocket Upgrade| NotifSvc
+
+    %% Interaction Synchrone inter-services
+    JobSvc -.->|Appel Synchrone REST<br/>GET /certifications/{userId}| GamifSvc
+
+    %% Flux Asynchrones Event-Driven
+    CodeSvc ==>|Publication: CodeSolutionPassedEvent| Broker
+    Broker ==>|Consommation| GamifSvc
+    Broker ==>|Consommation| CourseSvc
+    Broker ==>|Consommation| NotifSvc
