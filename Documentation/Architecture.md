@@ -74,7 +74,7 @@ flowchart TD
     Gateway -->|WebSocket Upgrade| NotifSvc
 
     %% Interaction Synchrone inter-services
-    JobSvc -.->|Appel Synchrone REST<br/>GET /certifications/{userId}| GamifSvc
+    JobSvc -.->|"Appel Synchrone REST<br/>GET /certifications/:userId"| GamifSvc
 
     %% Flux Asynchrones Event-Driven
     CodeSvc ==>|Publication: CodeSolutionPassedEvent| Broker
