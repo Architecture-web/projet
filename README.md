@@ -1,7 +1,7 @@
 # SkillQuest – Plateforme d'Apprentissage & Recrutement IT
 
 > **Projet AWD – Architecture Web Distribuée**  
-> **Classe :** [Votre Classe] | **Groupe :** [Votre Groupe]
+> **Classe :** 4SSA2| **Groupe :** WebNexus
 
 ---
 
