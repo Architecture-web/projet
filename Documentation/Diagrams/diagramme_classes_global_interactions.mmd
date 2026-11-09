@@ -1,0 +1,181 @@
+classDiagram
+    %% ========================================================
+    %% DIAGRAMME DE CLASSES GLOBAL & INTERACTIONS INTER-SERVICES
+    %% ========================================================
+
+    namespace AuthService {
+        class User {
+            +UUID id
+            +String email
+            +String passwordHash
+            +String firstName
+            +String lastName
+            +Boolean isActive
+            +register()
+            +validatePassword()
+        }
+        class Role {
+            +Long id
+            +String code
+            +String description
+        }
+        class RefreshToken {
+            +UUID id
+            +String token
+            +DateTime expiryDate
+            +isExpired() Boolean
+        }
+    }
+
+    namespace CourseService {
+        class Course {
+            +String id
+            +String title
+            +String instructorId
+            +DifficultyLevel difficulty
+            +Boolean isPublished
+        }
+        class Module {
+            +String moduleId
+            +String title
+            +Integer orderIndex
+        }
+        class Lesson {
+            +String lessonId
+            +String title
+            +LessonType type
+            +String exerciseRefId
+        }
+        class UserProgress {
+            +String id
+            +String userId
+            +String courseId
+            +Integer completionPercentage
+            +Boolean isCompleted
+            +markCompleted(lessonId)
+        }
+    }
+
+    namespace CodeExecutionService {
+        class CodeSubmission {
+            +UUID id
+            +String userId
+            +String exerciseId
+            +String language
+            +SubmissionStatus status
+            +Integer executionTimeMs
+            +evaluate()
+        }
+        class TestCase {
+            +UUID id
+            +String exerciseId
+            +String inputData
+            +String expectedOutput
+            +Boolean isHidden
+        }
+    }
+
+    namespace GamificationService {
+        class UserProfileGamification {
+            +UUID userId
+            +Integer totalXP
+            +Integer currentLevel
+            +Integer globalRank
+            +addXP(amount)
+        }
+        class Badge {
+            +Long id
+            +String codeName
+            +String title
+            +Integer requiredXP
+        }
+        class Certificate {
+            +UUID id
+            +UUID userId
+            +String courseId
+            +String certificateHash
+            +verifyHash() Boolean
+        }
+    }
+
+    namespace JobBoardService {
+        class JobPosting {
+            +String id
+            +String recruiterId
+            +String jobTitle
+            +List~String~ requiredSkills
+            +Integer minimumRequiredXP
+        }
+        class JobApplication {
+            +String id
+            +String jobPostingId
+            +String candidateId
+            +Integer matchingScore
+            +ApplicationStatus status
+        }
+    }
+
+    namespace CommunityService {
+        class ForumThread {
+            +String id
+            +String exerciseId
+            +String authorId
+            +String title
+            +Integer upvotesCount
+        }
+        class ThreadComment {
+            +String id
+            +String threadId
+            +String authorId
+            +String contentMarkdown
+        }
+        class PeerReviewSolution {
+            +String id
+            +String exerciseId
+            +String authorId
+            +String codeSnippet
+            +String timeComplexity
+        }
+    }
+
+    %% ========================================================
+    %% RELATIONS INTERNES AUX MICROSERVICES
+    %% ========================================================
+    User "1" --> "*" RefreshToken : possède
+    Course *-- Module : contient
+    Module *-- Lesson : contient
+    UserProgress ..> Course : suit
+
+    %% ========================================================
+    %% INTERACTIONS INTER-SERVICES ENTRE CLASSES (REST & EVENTS)
+    %% ========================================================
+
+    %% Auth -> Gamification (Init profil)
+    User ..> UserProfileGamification : "[REST Synchrone]<br/>Initialise profil (POST /profiles)"
+
+    %% Course -> Auth (Vérification instructeur)
+    Course ..> User : "[REST Synchrone]<br/>Vérifie rôle instructeur (GET /users/:id)"
+
+    %% CodeExec -> Course (Chargement tests)
+    CodeSubmission ..> TestCase : "[REST Synchrone]<br/>Charge assertions depuis Course Svc"
+
+    %% CodeExec -> Gamification (Crédit XP)
+    CodeSubmission ..> UserProfileGamification : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> +50 XP"
+
+    %% CodeExec -> Course (Validation avancement)
+    CodeSubmission ..> UserProgress : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> markCompleted"
+
+    %% CodeExec -> Community (Déblocage Peer-Review)
+    CodeSubmission ..> PeerReviewSolution : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> Débloque lecture"
+
+    %% Gamification -> Course (Titre officiel pour certificat)
+    Certificate ..> Course : "[REST Synchrone]<br/>Récupère titre certifié (GET /courses/:id)"
+
+    %% JobBoard -> Gamification (Vérification badges candidat)
+    JobApplication ..> UserProfileGamification : "[REST Synchrone]<br/>Certifie badges & XP (GET /certifications/:id)"
+
+    %% Gamification -> JobBoard (Recalcul matching)
+    Badge ..> JobApplication : "[Événement Asynchrone]<br/>BadgeUnlockedEvent -> Recalcul matching"
+
+    %% Community -> Auth (Profil auteur)
+    ForumThread ..> User : "[REST Synchrone]<br/>Enrichit auteur (GET /users/:id)"

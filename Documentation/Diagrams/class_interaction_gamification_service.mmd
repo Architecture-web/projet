@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Gamification & Certification Service
+
+    participant Ctrl as GamificationController
+    participant Svc as GamificationService
+    participant ProfileRepo as UserProfileRepository
+    participant ProfileEnt as UserProfileGamification (Entity)
+    participant CourseClient as CourseRestClient
+    participant CertSvc as CertificateService
+    participant CertRepo as CertificateRepository
+    participant CodeConsumer as CodePassedConsumer
+    participant EventPub as RabbitMQEventPublisher
+
+    Note over CodeConsumer,EventPub: Scénario 1 : Crédit d'XP & Badge (Consommation & Publication)
+    CodeConsumer->>Svc: handleCodeSolutionPassed(CodeSolutionPassedEvent)
+    Svc->>ProfileRepo: findByUserId(userId)
+    ProfileRepo-->>Svc: userProfile
+    Svc->>ProfileEnt: addXP(+50)
+    Svc->>ProfileEnt: evaluateLevelProgression()
+    Svc->>ProfileRepo: save(userProfile)
+    alt Si nouveau badge débloqué
+        Svc->>EventPub: publishBadgeUnlockedEvent(userId, badgeId) [RabbitMQ]
+    end
+
+    Note over Svc,CertRepo: Scénario 2 : Génération Certificat (Consommation & REST Synchrone)
+    Svc->>CourseClient: getCourseDetails(courseId) [REST Synchrone]
+    CourseClient-->>Svc: CourseDetailsDto(title, instructorName)
+    Svc->>CertSvc: generateSignedCertificate(userId, courseTitle)
+    CertSvc-->>Svc: Certificate(pdfBytes, sha256Hash)
+    Svc->>CertRepo: save(certificate)
+
+    Note over Ctrl,ProfileRepo: Scénario 3 : Certification Candidat (Exposition REST Synchrone)
+    Ctrl->>Svc: getCertifiedProfile(candidateId)
+    Svc->>ProfileRepo: findByUserId(candidateId)
+    Svc-->>Ctrl: CertifiedProfileDto(totalXP, badges, certificates)

@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Auth & Identity Service
+
+    participant Ctrl as AuthController
+    participant Svc as AuthService
+    participant UserEnt as User (Entity)
+    participant Repo as UserRepository
+    participant GamifClient as GamificationRestClient
+    participant EventPub as RabbitMQEventPublisher
+    participant EventSub as AbuseEventConsumer
+
+    Note over Ctrl,EventPub: Scénario 1 : Inscription (Interaction Synchrone REST & Publication)
+    Ctrl->>Svc: register(RegisterRequestDto)
+    Svc->>UserEnt: new User(email, hashPassword(password), role)
+    Svc->>Repo: save(user)
+    Repo-->>Svc: User persisted (userId)
+    Svc->>GamifClient: createProfile(userId, initialXP=0) [REST Synchrone]
+    GamifClient-->>Svc: 201 Created
+    Svc->>EventPub: publishUserRegisteredEvent(user) [RabbitMQ]
+    Svc-->>Ctrl: AuthResponseDto(jwtToken, userId)
+
+    Note over EventSub,Repo: Scénario 2 : Signalement Abus (Consommation Asynchrone)
+    EventSub->>Svc: handleUserReportedAbuse(UserReportedAbuseEvent)
+    Svc->>Repo: findById(targetUserId)
+    Repo-->>Svc: User
+    Svc->>UserEnt: deactivateAccount() (isActive = false)
+    Svc->>Repo: save(user)

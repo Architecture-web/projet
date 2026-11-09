@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Code Execution Service
+
+    participant Ctrl as SubmissionController
+    participant Svc as CodeExecutionService
+    participant CourseClient as CourseRestClient
+    participant Sandbox as DockerSandboxExecutor
+    participant Repo as SubmissionRepository
+    participant SubEnt as CodeSubmission (Entity)
+    participant EventPub as RabbitMQEventPublisher
+    participant ExConsumer as ExerciseCreatedConsumer
+
+    Note over Ctrl,EventPub: Scénario 1 : Soumission & Évaluation Sandbox (Synchrone + Asynchrone)
+    Ctrl->>Svc: submitCode(SubmitCodeDto)
+    Svc->>CourseClient: getTestCases(courseId, exerciseId) [REST Synchrone]
+    CourseClient-->>Svc: List~TestCaseDto~
+    Svc->>Repo: save(submissionInitial)
+    Svc->>Sandbox: executeIsolated(sourceCode, language, testCases)
+    Sandbox-->>Svc: SandboxExecutionReport(allPassed=true, timeMs=42)
+    Svc->>SubEnt: completeEvaluation(SUCCESS, 42ms)
+    Svc->>Repo: update(submission)
+    Svc->>EventPub: publishCodeSolutionPassedEvent(userId, exerciseId, 42ms) [RabbitMQ]
+    Svc-->>Ctrl: SubmissionStatusDto(SUCCESS)
+
+    Note over ExConsumer,Sandbox: Scénario 2 : Pré-chauffe Runtimes (Consommation Asynchrone)
+    ExConsumer->>Svc: handleExerciseCreated(ExerciseCreatedEvent)
+    Svc->>Sandbox: warmUpRuntimes(language)

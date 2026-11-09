@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Course Content Service
+
+    participant Ctrl as CourseController
+    participant Svc as CourseService
+    participant AuthClient as AuthRestClient
+    participant CourseRepo as CourseRepository
+    participant ProgRepo as UserProgressRepository
+    participant ProgEnt as UserProgress (Entity)
+    participant CodeConsumer as CodePassedEventConsumer
+    participant EventPub as RabbitMQEventPublisher
+
+    Note over Ctrl,CourseRepo: Scénario 1 : Création de Cours (Validation Synchrone REST)
+    Ctrl->>Svc: createCourse(CreateCourseDto)
+    Svc->>AuthClient: getInstructorSummary(instructorId) [REST Synchrone]
+    AuthClient-->>Svc: InstructorSummaryDto(isActive=true)
+    Svc->>CourseRepo: save(courseDocument)
+    CourseRepo-->>Svc: Course saved
+    Svc-->>Ctrl: CourseResponseDto
+
+    Note over CodeConsumer,EventPub: Scénario 2 : Validation d'Avancement (Consommation & Publication)
+    CodeConsumer->>Svc: handleCodeSolutionPassed(CodeSolutionPassedEvent)
+    Svc->>ProgRepo: findByUserIdAndCourseId(userId, courseId)
+    ProgRepo-->>Svc: userProgress
+    Svc->>ProgEnt: markLessonCompleted(exerciseId)
+    Svc->>ProgEnt: recalculatePercentage()
+    Svc->>ProgRepo: save(userProgress)
+    alt Si 100% complété
+        Svc->>EventPub: publishCourseCompletedEvent(userId, courseId) [RabbitMQ]
+    end

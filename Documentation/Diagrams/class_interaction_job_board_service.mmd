@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Job Board & Recruitment Service
+
+    participant Ctrl as JobBoardController
+    participant Svc as JobBoardService
+    participant GamifClient as GamificationRestClient
+    participant PostRepo as JobPostingRepository
+    participant AppRepo as JobApplicationRepository
+    participant AppEnt as JobApplication (Entity)
+    participant EventPub as RabbitMQEventPublisher
+    participant BadgeConsumer as BadgeUnlockedConsumer
+
+    Note over Ctrl,EventPub: Scénario 1 : Candidature Certifiée (REST Synchrone & Publication)
+    Ctrl->>Svc: applyToJob(jobId, candidateId)
+    Svc->>GamifClient: getCertifiedProfile(candidateId) [REST Synchrone]
+    GamifClient-->>Svc: CertifiedProfileDto(xp=3250, badges=["Java Master"])
+    Svc->>PostRepo: findById(jobId)
+    PostRepo-->>Svc: jobPosting
+    Svc->>Svc: calculateMatchingScore(posting, profile) -> score = 94%
+    Svc->>AppEnt: new JobApplication(jobId, candidateId, score=94)
+    Svc->>AppRepo: save(application)
+    Svc->>EventPub: publishJobApplicationSubmittedEvent(applicationId, recruiterId) [RabbitMQ]
+    Svc-->>Ctrl: ApplicationResponseDto(applicationId, score=94)
+
+    Note over BadgeConsumer,Svc: Scénario 2 : Recalcul Matching (Consommation Asynchrone)
+    BadgeConsumer->>Svc: handleBadgeUnlocked(BadgeUnlockedEvent)
+    Svc->>Svc: refreshMatchedJobsForCandidate(candidateId)

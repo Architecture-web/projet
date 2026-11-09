@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    title Diagramme d'Interaction des Classes Internes : Community & Peer-Review Service
+
+    participant Ctrl as CommunityController
+    participant Svc as CommunityService
+    participant AuthClient as AuthRestClient
+    participant ThreadRepo as ForumThreadRepository
+    participant ThreadEnt as ForumThread (Entity)
+    participant PeerRepo as PeerReviewRepository
+    participant CodeConsumer as CodePassedConsumer
+    participant EventPub as RabbitMQEventPublisher
+
+    Note over Ctrl,ThreadRepo: Scénario 1 : Consultation Thread (Enrichissement Synchrone REST)
+    Ctrl->>Svc: getThreadDetails(threadId)
+    Svc->>ThreadRepo: findById(threadId)
+    ThreadRepo-->>Svc: forumThread
+    Svc->>AuthClient: getUserSummary(forumThread.authorId) [REST Synchrone]
+    AuthClient-->>Svc: UserSummaryDto(fullName="Sarah B.", avatarUrl="...")
+    Svc-->>Ctrl: ThreadDetailsDto(thread, authorInfo)
+
+    Note over CodeConsumer,PeerRepo: Scénario 2 : Déblocage Peer-Review (Consommation Asynchrone)
+    CodeConsumer->>Svc: handleCodeSolutionPassed(CodeSolutionPassedEvent)
+    Svc->>PeerRepo: unlockPeerReviewAccess(userId, exerciseId)
+
+    Note over Ctrl,EventPub: Scénario 3 : Signalement d'Abus (Publication Asynchrone)
+    Ctrl->>Svc: reportAbuse(targetUserId, reason)
+    Svc->>EventPub: publishUserReportedAbuseEvent(targetUserId, reason) [RabbitMQ]
+    Svc-->>Ctrl: ReportConfirmationDto
