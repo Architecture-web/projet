@@ -1,0 +1,48 @@
+classDiagram
+    class User {
+        +UUID id
+        +String email
+        +String passwordHash
+        +String firstName
+        +String lastName
+        +Boolean isActive
+        +DateTime createdAt
+        +DateTime updatedAt
+        +register()
+        +validatePassword(rawPassword) Boolean
+        +deactivateAccount()
+    }
+
+    class Role {
+        +Long id
+        +String code
+        +String description
+    }
+
+    class RefreshToken {
+        +UUID id
+        +String token
+        +DateTime expiryDate
+        +Boolean isRevoked
+        +isExpired() Boolean
+        +revoke()
+    }
+
+    class UserRole {
+        +UUID userId
+        +Long roleId
+        +DateTime assignedAt
+    }
+
+    class AuditLog {
+        +UUID id
+        +UUID userId
+        +String action
+        +String ipAddress
+        +DateTime timestamp
+    }
+
+    User "1" --> "*" RefreshToken : gère
+    User "1" --> "*" UserRole : possède
+    Role "1" --> "*" UserRole : définit
+    User "1" --> "*" AuditLog : trace

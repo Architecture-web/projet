@@ -1,63 +1,135 @@
-# Code Execution & Sandbox Service
+# Code Execution & Sandbox Service (Microservice 2 – Étudiant 3)
 
-## 📌 Présentation du Service
-Cœur technique pratique de la plateforme, ce microservice permet d'exécuter et d'évaluer le code source soumis par les étudiants dans un environnement de bac à sable (*sandbox*) totalement étanche et sécurisé.
+## 📌 1. Présentation du Service
+Cœur technique pratique de SkillQuest, ce service prend en charge l'exécution isolée et l'évaluation automatisée du code source soumis par les étudiants au sein d'une sandbox sécurisée.
 
-- **Port d'écoute :** `8083`
+- **Port local :** `8083`
 - **Responsable :** Étudiant 3
-- **Stockage & Cache :** **Redis** (file d'attente FIFO) + **PostgreSQL** (`skillquest_submissions` pour l'historique pérenne)
-  - *Justification du choix :* Redis absorbe les pics d'évaluation simultanée en mémoire ultra-rapide. PostgreSQL garantit l'intégrité de l'historique d'évaluation et des temps d'exécution.
+- **Bases de données :** **Redis 7** (file d'attente FIFO) + **PostgreSQL 15** (`skillquest_submissions`)
+- **Justification du choix :** Redis offre un traitement en mémoire ultra-rapide des jobs de compilation sans bloquer le serveur web lors des pics de soumission. PostgreSQL assure la persistance ACID de l'historique complet des évaluations, des temps d'exécution et de la mémoire consommée.
 
 ---
 
-## 🎯 Responsabilités & Fonctionnalités
+## 📐 2. Conception & Diagramme de Classes
 
-1. **Isolation & Sécurité de la Sandbox :**
-   - Exécution du code dans un conteneur éphémère (Docker / Isolate) sans privilèges root.
-   - Désactivation stricte de tout accès réseau (pour empêcher les requêtes sortantes malveillantes).
-   - Quotas machine stricts : limite mémoire à 128 Mo et interruption automatique au-delà de 2 secondes (*Timeout / Boucles infinies*).
-2. **Évaluation par Jeux de Tests :**
-   - *Tests Publics :* Accessibles immédiatement à l'étudiant pour vérifier ses cas d'usage de base.
-   - *Tests Secrets :* Cas limites (edge cases) et tests de performance pour attribuer la note finale.
-3. **Publication d'Événements Métier :** Émission sur le bus RabbitMQ dès qu'une solution valide l'intégralité des tests.
+```mermaid
+classDiagram
+    class CodeSubmission {
+        +UUID id
+        +String userId
+        +String exerciseId
+        +ProgrammingLanguage language
+        +String sourceCode
+        +SubmissionStatus status
+        +Integer totalTests
+        +Integer passedTests
+        +Integer executionTimeMs
+        +Double memoryUsedMb
+        +DateTime submittedAt
+        +markPending()
+        +completeEvaluation(results)
+    }
+
+    class TestCase {
+        +UUID id
+        +String exerciseId
+        +String inputData
+        +String expectedOutput
+        +Boolean isHidden
+        +Integer timeoutSeconds
+    }
+
+    class ExecutionResult {
+        +UUID id
+        +UUID submissionId
+        +UUID testCaseId
+        +Boolean passed
+        +String actualOutput
+        +String errorLog
+        +Integer durationMs
+    }
+
+    class ExecutionSandboxPolicy {
+        +Integer maxMemoryMb
+        +Integer maxTimeoutSeconds
+        +Boolean networkAccessAllowed
+        +Boolean allowRootExecution
+    }
+
+    CodeSubmission "1" *-- "*" ExecutionResult : produit
+    TestCase "1" --> "*" ExecutionResult : évalue
+    CodeSubmission ..> ExecutionSandboxPolicy : contraint par
+```
+
+### Description des Entités
+- **`CodeSubmission`** : Entité principale enregistrant le code soumis, le langage (Java, Python, JS) et le verdict final (PENDING, SUCCESS, FAILED, TIMEOUT).
+- **`TestCase`** : Représentation d'un cas de test avec ses entrées et sorties attendues (publics ou secrets).
+- **`ExecutionResult`** : Résultat individuel d'exécution pour chaque test case (sortie obtenue, trace d'erreur éventuelle).
+- **`ExecutionSandboxPolicy`** : Règles d'isolation appliquées au conteneur Docker éphémère (128 Mo RAM, 2s timeout, pas de réseau).
 
 ---
 
-## 🔌 Contrats d'API Principaux
+## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
-| Méthode | Route | Description | Code Succès |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/submissions/run` | Test rapide du code contre les tests publics | `200 OK` |
-| `POST` | `/api/submissions/submit` | Soumission définitive et évaluation sandbox complète | `202 Accepted` |
-| `GET` | `/api/submissions/{id}` | Récupération du statut (PENDING, SUCCESS, FAILED, TIMEOUT) | `200 OK` |
+### 3.1. Communication Synchrone REST (Au moins 1)
+- **Appel émis vers :** `course-service` (Port 8082)
+- **Endpoint appelé :** `GET http://localhost:8082/api/courses/:courseId/exercises/:exerciseId/test-cases`
+- **Réponse reçue :**
+  ```json
+  [
+    { "id": "tc_1", "input": "[2, 7, 11, 15], target = 9", "expectedOutput": "[0, 1]", "isHidden": false },
+    { "id": "tc_2", "input": "[3, 2, 4], target = 6", "expectedOutput": "[1, 2]", "isHidden": false },
+    { "id": "tc_3", "input": "[3, 3], target = 6", "expectedOutput": "[0, 1]", "isHidden": true }
+  ]
+  ```
+- **Code de retour attendu :** `200 OK`
+- **Justification technique :** Le service d'exécution de code est strictement découplé du contenu pédagogique : il ne stocke aucun énoncé ni jeu de test en dur. Avant de lancer le conteneur sandbox, il interroge en direct le `course-service` pour obtenir la liste à jour des assertions à tester.
 
----
-
-## 🔄 Émission d'Événements (RabbitMQ)
-
-- **Exchange :** `skillquest.events` (Topic)
+### 3.2. Publication d'un Événement Métier (Au moins 1)
+- **Événement publié :** `CodeSolutionPassedEvent`
+- **Exchange RabbitMQ :** `skillquest.events` (Topic)
 - **Routing Key :** `code.solution.passed`
-- **Payload Exemple :**
+- **Payload JSON :**
   ```json
   {
-    "eventId": "evt_9918274a",
+    "eventId": "evt_code_9918",
     "eventType": "CODE_SOLUTION_PASSED",
     "userId": "usr_9823f4a1",
     "exerciseId": "ex_binary_search_01",
     "language": "JAVA",
     "executionTimeMs": 42,
-    "timestamp": "2026-11-08T12:00:00Z"
+    "memoryUsedMb": 28.5,
+    "timestamp": "2026-11-09T14:35:00Z"
   }
   ```
+- **Justification :** Événement pivot de l'architecture ! Sa publication déclenche en parallèle la progression du cours (`course-service`), le crédit d'XP (+50 XP dans `gamification-service`), l'ouverture de l'espace de discussion (`community-service`) et l'alerte temps réel (`notification-service`).
+
+### 3.3. Consommation d'un Événement Métier (Au moins 1)
+- **Événement consommé :** `ExerciseCreatedEvent`
+- **Queue écoutée :** `code_exec.exercise_created.queue`
+- **Émetteur d'origine :** `course-service`
+- **Routing Key :** `course.exercise.created`
+- **Action déclenchée :** À la création d'un nouvel exercice par un instructeur, le service pré-chauffe (*warm-up*) les images Docker et les compilateurs associés sur le serveur d'exécution pour que la première soumission de l'élève s'exécute sans latence d'initialisation d'image.
 
 ---
 
-## ⚙️ Configuration Requise (`.env`)
+## 📋 4. Principaux Contrats d'API
+
+| Méthode | Route | Description | Code Succès | Erreurs Possibles |
+| :--- | :--- | :--- | :---: | :--- |
+| `POST` | `/api/submissions/run` | Test rapide contre les assertions publiques | `200 OK` | `400 Bad Request` |
+| `POST` | `/api/submissions/submit` | Soumission définitive évaluée en tâche de fond | `202 Accepted` | `400 Bad Request` |
+| `GET` | `/api/submissions/{id}` | Statut de l'évaluation et métriques CPU/RAM | `200 OK` | `404 Not Found` |
+
+---
+
+## ⚙️ 5. Configuration d'Environnement (`.env`)
 
 ```properties
 PORT=8083
 DATABASE_URL=postgresql://postgres:password@localhost:5432/skillquest_submissions
 REDIS_URL=redis://localhost:6379
+COURSE_SERVICE_URL=http://localhost:8082
 RABBITMQ_URI=amqp://guest:guest@localhost:5672
 EXECUTION_TIMEOUT_SECONDS=2
 MAX_MEMORY_MB=128

@@ -21,6 +21,22 @@ Pour éviter tout conflit lors du développement en local, chaque service écout
 
 ---
 
+## ⚡ Matrice des Exigences Techniques AWD (Synchrones & Asynchrones)
+
+Chaque microservice respecte strictement les 3 exigences techniques imposées :
+
+| Microservice | Communication Synchrone REST (Au moins 1) | Événement Métier Publié (Au moins 1) | Événement Métier Consommé (Au moins 1) |
+| :--- | :--- | :--- | :--- |
+| **`auth-service`** | Appelle `gamification-service` (`POST /profiles`) & expose `GET /users/:id/summary` | `UserRegisteredEvent` | `UserReportedAbuseEvent` (émis par Community) |
+| **`course-service`** | Appelle `auth-service` (`GET /users/:id/summary`) & expose `GET /test-cases` | `CourseCompletedEvent` | `CodeSolutionPassedEvent` (émis par Code Exec) |
+| **`code-execution-service`** | Appelle `course-service` (`GET /test-cases`) pour charger les tests unitaires | `CodeSolutionPassedEvent` | `ExerciseCreatedEvent` (émis par Course) |
+| **`gamification-service`** | Appelle `course-service` (`GET /courses/:id`) & expose `GET /certifications/:id` | `BadgeUnlockedEvent` | `CodeSolutionPassedEvent` & `CourseCompletedEvent` |
+| **`job-board-service`** | Appelle `gamification-service` (`GET /certifications/:id`) pour valider les badges | `JobApplicationSubmittedEvent` | `BadgeUnlockedEvent` (émis par Gamification) |
+| **`community-service`** | Appelle `auth-service` (`GET /users/:id/summary`) pour afficher l'auteur | `UserReportedAbuseEvent` | `CodeSolutionPassedEvent` (débloque Peer-Review) |
+| **`notification-service`** | Expose `POST /direct-email` appelé par `auth-service` | `NotificationDispatchedEvent` | `CodeSolutionPassedEvent`, `BadgeUnlockedEvent`, `JobApplicationSubmittedEvent` |
+
+---
+
 ## 📂 Détail de Chaque Partie (What each part is for)
 
 ### 1. `api-gateway/` – Passerelle d'Entrée & Sécurité

@@ -1,0 +1,46 @@
+classDiagram
+    class CodeSubmission {
+        +UUID id
+        +String userId
+        +String exerciseId
+        +ProgrammingLanguage language
+        +String sourceCode
+        +SubmissionStatus status
+        +Integer totalTests
+        +Integer passedTests
+        +Integer executionTimeMs
+        +Double memoryUsedMb
+        +DateTime submittedAt
+        +markPending()
+        +completeEvaluation(results)
+    }
+
+    class TestCase {
+        +UUID id
+        +String exerciseId
+        +String inputData
+        +String expectedOutput
+        +Boolean isHidden
+        +Integer timeoutSeconds
+    }
+
+    class ExecutionResult {
+        +UUID id
+        +UUID submissionId
+        +UUID testCaseId
+        +Boolean passed
+        +String actualOutput
+        +String errorLog
+        +Integer durationMs
+    }
+
+    class ExecutionSandboxPolicy {
+        +Integer maxMemoryMb
+        +Integer maxTimeoutSeconds
+        +Boolean networkAccessAllowed
+        +Boolean allowRootExecution
+    }
+
+    CodeSubmission "1" *-- "*" ExecutionResult : produit
+    TestCase "1" --> "*" ExecutionResult : évalue
+    CodeSubmission ..> ExecutionSandboxPolicy : contraint par

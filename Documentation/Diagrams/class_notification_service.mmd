@@ -1,0 +1,30 @@
+classDiagram
+    class UserNotification {
+        +UUID id
+        +String recipientUserId
+        +NotificationType type
+        +String title
+        +String message
+        +Boolean isRead
+        +DateTime createdAt
+        +markAsRead()
+    }
+
+    class WebSocketSessionRegistry {
+        +Map activeSessions
+        +registerSession(userId, session)
+        +removeSession(userId)
+        +isUserOnline(userId) Boolean
+    }
+
+    class EmailNotificationJob {
+        +UUID id
+        +String toEmail
+        +String subject
+        +String templateName
+        +EmailStatus status
+        +DateTime scheduledAt
+    }
+
+    UserNotification ..> WebSocketSessionRegistry : routé en direct vers
+    UserNotification ..> EmailNotificationJob : déclenche si hors-ligne

@@ -1,0 +1,49 @@
+classDiagram
+    class ForumThread {
+        +String id
+        +String exerciseId
+        +String authorId
+        +String authorName
+        +String title
+        +String contentMarkdown
+        +Integer upvotesCount
+        +Integer repliesCount
+        +DateTime createdAt
+        +upvote()
+    }
+
+    class ThreadComment {
+        +String id
+        +String threadId
+        +String parentCommentId
+        +String authorId
+        +String contentMarkdown
+        +Integer score
+        +DateTime createdAt
+        +addScore(delta)
+    }
+
+    class PeerReviewSolution {
+        +String id
+        +String exerciseId
+        +String authorId
+        +String codeSnippet
+        +String timeComplexity
+        +String spaceComplexity
+        +String explanation
+        +Integer likesCount
+        +DateTime sharedAt
+    }
+
+    class AbuseReport {
+        +String id
+        +String targetUserId
+        +String reporterUserId
+        +String reason
+        +ReportStatus status
+        +DateTime reportedAt
+    }
+
+    ForumThread "1" *-- "*" ThreadComment : regroupe
+    ThreadComment "1" *-- "*" ThreadComment : réponses imbriquées
+    ForumThread ..> AbuseReport : peut faire l'objet de

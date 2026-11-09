@@ -1,0 +1,42 @@
+classDiagram
+    class UserProfileGamification {
+        +UUID userId
+        +Integer totalXP
+        +Integer currentLevel
+        +Integer globalRank
+        +DateTime updatedAt
+        +addXP(amount) Boolean
+        +evaluateLevelProgression()
+    }
+
+    class Badge {
+        +Long id
+        +String codeName
+        +String title
+        +String description
+        +String iconUrl
+        +Integer requiredXP
+    }
+
+    class UserBadge {
+        +UUID id
+        +UUID userId
+        +Long badgeId
+        +DateTime unlockedAt
+    }
+
+    class Certificate {
+        +UUID id
+        +UUID userId
+        +String courseId
+        +String studentFullName
+        +String courseTitle
+        +String certificateHash
+        +DateTime issuedAt
+        +generateHash() String
+        +verifyHash(hash) Boolean
+    }
+
+    UserProfileGamification "1" --> "*" UserBadge : possède
+    Badge "1" --> "*" UserBadge : attribué via
+    UserProfileGamification "1" --> "*" Certificate : certifié par

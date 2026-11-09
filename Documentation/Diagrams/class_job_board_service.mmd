@@ -1,0 +1,36 @@
+classDiagram
+    class JobPosting {
+        +String id
+        +String recruiterId
+        +String companyName
+        +String jobTitle
+        +String location
+        +ContractType contractType
+        +List~String~ requiredSkills
+        +Integer minimumRequiredXP
+        +Boolean isOpen
+        +DateTime postedAt
+        +closeJob()
+    }
+
+    class JobApplication {
+        +String id
+        +String jobPostingId
+        +String candidateId
+        +ApplicationStatus status
+        +Integer verifiedCandidateXP
+        +List~String~ verifiedBadges
+        +Integer matchingScore
+        +DateTime appliedAt
+        +updateStatus(newStatus)
+    }
+
+    class CandidateMatchingProfile {
+        +String candidateId
+        +Integer totalXP
+        +List~String~ verifiedSkillTags
+        +calculateMatch(jobPosting) Integer
+    }
+
+    JobPosting "1" --> "*" JobApplication : reçoit
+    JobApplication ..> CandidateMatchingProfile : évalué avec

@@ -1,0 +1,41 @@
+sequenceDiagram
+    autonumber
+    participant Auth as Auth Service (8081)
+    participant Course as Course Service (8082)
+    participant Code as Code Execution Service (8083)
+    participant Gamif as Gamification Service (8084)
+    participant Job as Job Board Service (8085)
+    participant Comm as Community Service (8086)
+    participant Notif as Notification Service (8087)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+
+    Note over Auth,Rabbit: 1. Inscription & Initialisation Profil
+    Auth->>Gamif: [REST Synchrone] POST /api/gamification/profiles (Init XP)
+    Auth->>Rabbit: [Événement Publié] UserRegisteredEvent
+    Rabbit->>Notif: [Événement Consommé] UserRegisteredEvent (Email bienvenue)
+
+    Note over Code,Course: 2. Résolution d'Exercice & Sandbox
+    Code->>Course: [REST Synchrone] GET /api/courses/:cId/exercises/:eId/test-cases
+    Code->>Rabbit: [Événement Publié] CodeSolutionPassedEvent
+    Rabbit->>Gamif: [Événement Consommé] CodeSolutionPassedEvent (+50 XP)
+    Rabbit->>Course: [Événement Consommé] CodeSolutionPassedEvent (Progression validée)
+    Rabbit->>Comm: [Événement Consommé] CodeSolutionPassedEvent (Débloque Peer-Review)
+    Rabbit->>Notif: [Événement Consommé] CodeSolutionPassedEvent (Alerte WebSocket)
+
+    Note over Course,Gamif: 3. Fin de Cours & Certification
+    Course->>Rabbit: [Événement Publié] CourseCompletedEvent
+    Rabbit->>Gamif: [Événement Consommé] CourseCompletedEvent
+    Gamif->>Course: [REST Synchrone] GET /api/courses/:id (Métadonnées & Titre)
+    Gamif->>Rabbit: [Événement Publié] BadgeUnlockedEvent & CertificateIssuedEvent
+    Rabbit->>Job: [Événement Consommé] BadgeUnlockedEvent (Mise à jour matching)
+    Rabbit->>Notif: [Événement Consommé] BadgeUnlockedEvent (Toast live)
+
+    Note over Job,Gamif: 4. Candidature Tech Certifiée
+    Job->>Gamif: [REST Synchrone] GET /api/certifications/:userId (Validation badges)
+    Job->>Rabbit: [Événement Publié] JobApplicationSubmittedEvent
+    Rabbit->>Notif: [Événement Consommé] JobApplicationSubmittedEvent (Alerte Recruteur)
+
+    Note over Comm,Auth: 5. Entraide & Modération
+    Comm->>Auth: [REST Synchrone] GET /api/auth/users/:id/summary (Auteur du post)
+    Comm->>Rabbit: [Événement Publié] UserReportedAbuseEvent
+    Rabbit->>Auth: [Événement Consommé] UserReportedAbuseEvent (Vérif compte)
