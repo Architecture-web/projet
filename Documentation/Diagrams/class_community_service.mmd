@@ -45,5 +45,5 @@ classDiagram
     }
 
     ForumThread "1" *-- "*" ThreadComment : regroupe
-    ThreadComment "1" *-- "*" ThreadComment : réponses imbriquées
-    ForumThread ..> AbuseReport : peut faire l'objet de
+    ThreadComment "1" *-- "*" ThreadComment : reponses_imbriquees
+    ForumThread ..> AbuseReport : sujet_de_signalement

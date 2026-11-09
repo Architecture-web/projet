@@ -141,7 +141,7 @@ classDiagram
     %% ========================================================
     %% RELATIONS INTERNES AUX MICROSERVICES
     %% ========================================================
-    User "1" --> "*" RefreshToken : possède
+    User "1" --> "*" RefreshToken : possede
     Course *-- Module : contient
     Module *-- Lesson : contient
     UserProgress ..> Course : suit
@@ -149,33 +149,13 @@ classDiagram
     %% ========================================================
     %% INTERACTIONS INTER-SERVICES ENTRE CLASSES (REST & EVENTS)
     %% ========================================================
-
-    %% Auth -> Gamification (Init profil)
-    User ..> UserProfileGamification : "[REST Synchrone]<br/>Initialise profil (POST /profiles)"
-
-    %% Course -> Auth (Vérification instructeur)
-    Course ..> User : "[REST Synchrone]<br/>Vérifie rôle instructeur (GET /users/:id)"
-
-    %% CodeExec -> Course (Chargement tests)
-    CodeSubmission ..> TestCase : "[REST Synchrone]<br/>Charge assertions depuis Course Svc"
-
-    %% CodeExec -> Gamification (Crédit XP)
-    CodeSubmission ..> UserProfileGamification : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> +50 XP"
-
-    %% CodeExec -> Course (Validation avancement)
-    CodeSubmission ..> UserProgress : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> markCompleted"
-
-    %% CodeExec -> Community (Déblocage Peer-Review)
-    CodeSubmission ..> PeerReviewSolution : "[Événement Asynchrone]<br/>CodeSolutionPassedEvent -> Débloque lecture"
-
-    %% Gamification -> Course (Titre officiel pour certificat)
-    Certificate ..> Course : "[REST Synchrone]<br/>Récupère titre certifié (GET /courses/:id)"
-
-    %% JobBoard -> Gamification (Vérification badges candidat)
-    JobApplication ..> UserProfileGamification : "[REST Synchrone]<br/>Certifie badges & XP (GET /certifications/:id)"
-
-    %% Gamification -> JobBoard (Recalcul matching)
-    Badge ..> JobApplication : "[Événement Asynchrone]<br/>BadgeUnlockedEvent -> Recalcul matching"
-
-    %% Community -> Auth (Profil auteur)
-    ForumThread ..> User : "[REST Synchrone]<br/>Enrichit auteur (GET /users/:id)"
+    User ..> UserProfileGamification : REST_Init_Profil
+    Course ..> User : REST_Verif_Instructeur
+    CodeSubmission ..> TestCase : REST_Charge_Assertions
+    CodeSubmission ..> UserProfileGamification : Event_CodePassed_CreditXP
+    CodeSubmission ..> UserProgress : Event_CodePassed_ValideProgression
+    CodeSubmission ..> PeerReviewSolution : Event_CodePassed_DebloqueSolution
+    Certificate ..> Course : REST_RecupereTitreCertifie
+    JobApplication ..> UserProfileGamification : REST_ValideBadgesCandidat
+    Badge ..> JobApplication : Event_BadgeUnlocked_RecalculMatching
+    ForumThread ..> User : REST_EnrichitAuteur
