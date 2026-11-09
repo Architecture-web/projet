@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor Candidate as Candidat
+    participant GW as API Gateway (8080)
+    participant Job as Job Board Service (8085)
+    participant Gamif as Gamification Service (8084)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+    participant Notif as Notification Service (8087)
+
+    Note over Candidate,Gamif: 1. Candidature avec Certification en Direct (Synchrone)
+    Candidate->>GW: POST /api/jobs/:id/apply (CandidateId, Lettre)
+    GW->>Job: Relaye la requête HTTP
+    Job->>Gamif: [REST Synchrone] GET /api/certifications/:candidateId
+    Gamif-->>Job: 200 OK (XP: 3250, Badges validés)
+    Job->>Job: Calcul du matching score (ex: 94%) & sauvegarde candidature
+    Job->>Rabbit: [Événement Publié] JobApplicationSubmittedEvent (job.application.submitted)
+    Job-->>GW: 201 Created (applicationId, matchingScore: 94)
+    GW-->>Candidate: 201 Created
+
+    Note over Gamif,Job: 2. Mise à Jour Automatique du Matching (Consommation Asynchrone)
+    Gamif->>Rabbit: [Événement Émis] BadgeUnlockedEvent (gamification.badge.unlocked)
+    Rabbit->>Job: [Événement Consommé] BadgeUnlockedEvent
+    Job->>Job: Recalcule les offres recommandées pour ce candidat en tâche de fond

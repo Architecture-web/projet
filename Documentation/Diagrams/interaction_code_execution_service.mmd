@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor Student as Apprenant / Candidat
+    participant GW as API Gateway (8080)
+    participant CodeExec as Code Execution Service (8083)
+    participant Course as Course Service (8082)
+    participant Sandbox as Sandbox Docker Isolé (éphémère)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+
+    Note over Student,Course: 1. Soumission & Chargement des Tests (Synchrone)
+    Student->>GW: POST /api/submissions/submit (Code source, Langage, ExerciseId)
+    GW->>CodeExec: Relaye la requête HTTP
+    CodeExec->>Course: [REST Synchrone] GET /api/courses/:cId/exercises/:eId/test-cases
+    Course-->>CodeExec: 200 OK (Liste assertions publiques & cachées)
+    CodeExec-->>GW: 202 Accepted (submissionId)
+    GW-->>Student: 202 Accepted
+
+    Note over CodeExec,Sandbox: 2. Exécution Isolée & Mesures
+    CodeExec->>Sandbox: Lancement conteneur éphémère (RAM: 128Mo, Timeout: 2s, Pas de réseau)
+    Sandbox-->>CodeExec: Verdict (Temps: 42ms, Tous tests validés)
+
+    Note over CodeExec,Rabbit: 3. Publication d'Événement Métier (Asynchrone)
+    CodeExec->>Rabbit: [Événement Publié] CodeSolutionPassedEvent (code.solution.passed)
+    Note over Rabbit: Consommé par Course Svc, Gamification Svc, Community Svc, Notif Svc

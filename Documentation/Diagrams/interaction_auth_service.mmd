@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor Client as Client Web / Mobile
+    participant GW as API Gateway (8080)
+    participant Auth as Auth Service (8081)
+    participant Gamif as Gamification Service (8084)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+    participant Comm as Community Service (8086)
+
+    Note over Client,Rabbit: 1. Inscription & Initialisation Profil (Synchrone & Asynchrone)
+    Client->>GW: POST /api/auth/register (Email, Mot de passe)
+    GW->>Auth: Relaye la requête HTTP
+    Auth->>Auth: Validation & Hachage BCrypt
+    Auth->>Gamif: [REST Synchrone] POST /api/gamification/profiles
+    Gamif-->>Auth: 201 Created (Profil initialisé avec 0 XP)
+    Auth->>Rabbit: [Événement Publié] UserRegisteredEvent (auth.user.registered)
+    Auth-->>GW: 201 Created (userId, JWT token)
+    GW-->>Client: 201 Created
+
+    Note over Comm,Auth: 2. Réaction à un Signalement d'Abus (Consommation Asynchrone)
+    Comm->>Rabbit: [Événement Émis] UserReportedAbuseEvent (community.user.reported)
+    Rabbit->>Auth: [Événement Consommé] UserReportedAbuseEvent
+    Auth->>Auth: Analyse seuil (si > 3 abus: isActive = false)

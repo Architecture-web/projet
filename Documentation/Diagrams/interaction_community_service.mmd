@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    actor Student as Apprenant / Auteur
+    participant GW as API Gateway (8080)
+    participant Comm as Community Service (8086)
+    participant Auth as Auth Service (8081)
+    participant CodeExec as Code Execution Service (8083)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+
+    Note over Student,Auth: 1. Consultation de Thread & Auteur (Synchrone)
+    Student->>GW: GET /api/community/threads/:id
+    GW->>Comm: Relaye la requête HTTP
+    Comm->>Auth: [REST Synchrone] GET /api/auth/users/:authorId/summary
+    Auth-->>Comm: 200 OK (Nom complet, avatarUrl)
+    Comm-->>GW: 200 OK (Thread enrichi avec identité de l'auteur)
+    GW-->>Student: 200 OK
+
+    Note over CodeExec,Comm: 2. Déblocage de la Revue de Code (Consommation Asynchrone)
+    CodeExec->>Rabbit: [Événement Émis] CodeSolutionPassedEvent (code.solution.passed)
+    Rabbit->>Comm: [Événement Consommé] CodeSolutionPassedEvent
+    Comm->>Comm: Débloque les droits de lecture/écriture Peer-Review pour cet exercice
+
+    Note over Student,Rabbit: 3. Signalement d'Abus (Publication Asynchrone)
+    Student->>GW: POST /api/community/reports (targetUserId, motif)
+    GW->>Comm: Enregistrement du rapport
+    Comm->>Rabbit: [Événement Publié] UserReportedAbuseEvent (community.user.reported)
+    Note over Rabbit: Consommé par Auth Service pour suspension éventuelle

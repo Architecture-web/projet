@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor Instructor as Instructeur / Auteur
+    participant GW as API Gateway (8080)
+    participant Course as Course Service (8082)
+    participant Auth as Auth Service (8081)
+    participant CodeExec as Code Execution Service (8083)
+    participant Rabbit as RabbitMQ (Exchange: skillquest.events)
+
+    Note over Instructor,Auth: 1. Création de Cours (Validation Synchrone)
+    Instructor->>GW: POST /api/courses (Titre, Modules, InstructorId)
+    GW->>Course: Relaye la requête
+    Course->>Auth: [REST Synchrone] GET /api/auth/users/:id/summary
+    Auth-->>Course: 200 OK (Nom, Statut actif, ROLE_INSTRUCTOR)
+    Course->>Course: Enregistrement MongoDB & Publication
+    Course-->>GW: 201 Created (courseId)
+
+    Note over CodeExec,Course: 2. Validation Automatique d'Avancement (Consommation Asynchrone)
+    CodeExec->>Rabbit: [Événement Émis] CodeSolutionPassedEvent (code.solution.passed)
+    Rabbit->>Course: [Événement Consommé] CodeSolutionPassedEvent
+    Course->>Course: markLessonCompleted(exerciseId) & recalcule % avancement
+    alt Si cours achevé à 100%
+        Course->>Rabbit: [Événement Publié] CourseCompletedEvent (course.completion.completed)
+    end
