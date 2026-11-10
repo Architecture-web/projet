@@ -117,22 +117,41 @@ flowchart TD
 
 ## 4. Modes de Communication
 
-> **En clair :**
-> - **Synchrone (REST) :** Pour les demandes directes avec réponse immédiate.
-> - **Asynchrone (RabbitMQ) :** Pour diffuser des actions sans bloquer ni ralentir l'application.
+> **En résumé :**
+> - **Synchrone (HTTP REST) :** L'émetteur attend la réponse immédiatement (idéal pour la consultation de données fraîches).
+> - **Asynchrone (RabbitMQ) :** L'émetteur publie un message et continue sans attendre ; les autres services le traitent en arrière-plan (idéal pour la performance et la tolérance aux pannes).
 
 ### 4.1. Communications Synchrones (HTTP REST)
-Utilisées pour obtenir une information en temps réel :
-- **Principe :** L'API Gateway reçoit la requête du client et la transmet au bon service.
-- **Exemple simple :** Quand un candidat postule, le **Job Board Service** appelle directement en REST `GET /api/certifications/{userId}` sur le **Gamification Service** pour vérifier immédiatement ses vrais badges.
+Ce mode est réservé aux vérifications directes qui conditionnent immédiatement la suite d'un traitement :
 
-### 4.2. Communications Asynchrones (Événements RabbitMQ)
-Utilisées pour découpler les services et exécuter plusieurs actions en parallèle sans attente :
-- **Exemple concret :** Un élève réussit un exercice de code.
-  1. Le **Code Execution Service** publie l'événement `CodeSolutionPassedEvent`.
-  2. Le **Gamification Service** reçoit l'événement et ajoute +50 XP à l'élève.
-  3. Le **Course Content Service** reçoit l'événement et valide automatiquement la leçon.
-  4. Le **Notification Service** reçoit l'événement et affiche instantanément une alerte de félicitations sur l'écran.
+1. **Point d'entrée Client :**
+   - L'utilisateur envoie sa requête à l'**API Gateway** (port `8080`).
+   - L'API Gateway vérifie le token JWT et route la requête vers le microservice concerné.
+
+2. **Exemples inter-services (Service à Service) :**
+   - **Vérification d'un candidat :** Lors d'une candidature, le **Job Board Service** appelle en direct `GET /api/certifications/:userId` auprès du **Gamification Service** pour valider instantanément les badges du candidat avant d'enregistrer le dossier.
+   - **Validation d'un enseignant :** Lors de la création d'un cours, le **Course Service** appelle en direct `GET /api/auth/users/:id/summary` sur l'**Auth Service** pour vérifier que le créateur est bien un enseignant actif.
+   - **Chargement des tests :** Avant d'exécuter un code, le **Code Execution Service** appelle en direct `GET /api/courses/.../test-cases` sur le **Course Service** pour récupérer les assertions à tester.
+
+### 4.2. Communications Asynchrones (Événements via RabbitMQ)
+Ce mode permet d'avertir plusieurs services en même temps sans ralentir l'utilisateur et sans bloquer l'application si un service est momentanément indisponible :
+
+1. **Principe :**
+   - Le service émetteur envoie un événement sur le **Topic Exchange** `skillquest.events` avec une clé de routage précise.
+   - Chaque service intéressé possède sa propre **file d'attente durable (queue)** et traite le message à son rythme.
+
+2. **Exemple concret – Flux après validation d'un exercice :**
+   - **Déclencheur :** L'élève soumet son code et tous les tests unitaires réussissent.
+   - **Émission :** Le **Code Execution Service** publie l'événement `CodeSolutionPassedEvent` (`code.solution.passed`).
+   - **Traitements en parallèle par les consommateurs :**
+     - **Gamification Service :** Consomme l'événement, crédite **+50 XP** et débloque le badge correspondant si le palier est atteint.
+     - **Course Content Service :** Consomme l'événement et marque la leçon comme **Validée** (100% de complétion).
+     - **Community Service :** Consomme l'événement et **débloque l'accès aux solutions** des autres étudiants (Peer-Review).
+     - **Notification Service :** Consomme l'événement et pousse instantanément une **alerte visuelle (WebSocket)** sur l'écran de l'élève.
+
+3. **Autre exemple clé – Inscription d'un nouvel utilisateur :**
+   - L'**Auth Service** publie `UserRegisteredEvent` après avoir créé le compte.
+   - Le **Notification Service** le consomme pour envoyer l'e-mail de confirmation en arrière-plan, ce qui permet à l'utilisateur de recevoir sa réponse HTTP d'inscription en quelques millisecondes.
 
 ---
 
