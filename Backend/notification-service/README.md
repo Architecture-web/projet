@@ -54,45 +54,27 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Reçoit des requêtes de `auth-service` pour expédier immédiatement des e-mails sensibles (activation, mot de passe).
+> - **Asynchrone (Publie) :** Émet `NotificationDispatchedEvent` pour confirmer qu'une alerte a bien été délivrée.
+> - **Asynchrone (Consomme) :** Écoute les événements des autres services (`CodeSolutionPassedEvent`, `BadgeUnlockedEvent`, `JobApplicationSubmittedEvent`) pour envoyer des alertes WebSockets en direct ou par e-mail.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel reçu depuis :** `auth-service` (Port 8081)
 - **Endpoint exposé :** `POST http://localhost:8087/api/notifications/direct-email`
-- **Payload reçu :**
-  ```json
-  {
-    "recipientEmail": "sarah.dev@example.com",
-    "subject": "Confirmez votre compte SkillQuest",
-    "template": "account-activation",
-    "variables": { "token": "act_88192a" }
-  }
-  ```
-- **Code de retour renvoyé :** `202 Accepted`
-- **Justification technique :** Lors d'un processus sensible nécessitant une validation immédiate de prise en charge (par exemple l'envoi d'un mot de passe oublié ou d'un code 2FA), l'Auth Service sollicite directement ce point d'entrée REST pour obtenir un acquittement de livraison immédiat.
+- **Explication simple :** Quand un utilisateur s'inscrit ou demande à réinitialiser son mot de passe, `auth-service` contacte directement ce service en REST pour lancer l'envoi immédiat de l'e-mail.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `NotificationDispatchedEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `notification.alert.dispatched`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_notif_901",
-    "eventType": "NOTIFICATION_DISPATCHED",
-    "notificationId": "notif_3321",
-    "recipientUserId": "usr_9823f4a1",
-    "channel": "WEBSOCKET",
-    "status": "DELIVERED",
-    "timestamp": "2026-11-09T14:45:00Z"
-  }
-  ```
-- **Justification :** Alimente les métriques de monitoring de la plateforme et garantit la traçabilité de la bonne réception des messages critiques.
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `notification.alert.dispatched`)
+- **Explication simple :** Le service publie cet événement chaque fois qu'un message est remis pour garder une trace et vérifier que le système d'alertes fonctionne.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
 - **Événements consommés :**
-  1. `CodeSolutionPassedEvent` (Queue: `notification.code_events.queue`) $\rightarrow$ Pousse une alerte félicitant l'élève.
-  2. `BadgeUnlockedEvent` (Queue: `notification.badge_events.queue`) $\rightarrow$ Pousse une notification visuelle de déblocage d'insigne.
-  3. `JobApplicationSubmittedEvent` (Queue: `notification.job_events.queue`) $\rightarrow$ Notifie le recruteur qu'une candidature certifiée a été déposée.
-- **Action déclenchée :** À la réception de chaque message, le service vérifie via le `WebSocketSessionRegistry` (Redis) si l'utilisateur est connecté en ligne. Si oui, il diffuse instantanément l'alerte sur son socket. Sinon, il crée un `EmailNotificationJob` pour un envoi par courriel.
+  1. `CodeSolutionPassedEvent` : Envoie une notification félicitant l'élève dès qu'un exercice est réussi.
+  2. `BadgeUnlockedEvent` : Affiche une alerte animée sur l'écran quand un badge est débloqué.
+  3. `JobApplicationSubmittedEvent` : Préviens immédiatement le recruteur qu'un élève a postulé à son offre.
+- **Explication simple :** Si l'utilisateur est connecté sur le site, le message apparaît en temps réel à l'écran grâce aux WebSockets. S'il est déconnecté, le service lui envoie un e-mail.
 
 ---
 

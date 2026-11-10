@@ -67,41 +67,28 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `course-service` pour obtenir le titre exact du cours avant de générer le certificat.
+> - **Asynchrone (Publie) :** Émet `BadgeUnlockedEvent` quand un élève débloque un nouveau badge de compétence.
+> - **Asynchrone (Consomme) :** Écoute `CodeSolutionPassedEvent` (pour ajouter +50 XP) et `CourseCompletedEvent` (pour créer le certificat).
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `course-service` (Port 8082)
 - **Endpoint appelé :** `GET http://localhost:8082/api/courses/:courseId`
-- **Réponse reçue :** `{ "id": "crs_java_adv_01", "title": "Java & Architecture Distribuée", "instructorId": "usr_ins_42" }`
-- **Code de retour attendu :** `200 OK`
-- **Justification technique :** Lorsqu'un cours est complété, le service doit générer le certificat officiel. Il interroge en direct le `course-service` pour obtenir le titre exact et officiel du cours ainsi que les métadonnées requises pour le tampon du PDF sans dupliquer ces données.
-- **Service également appelé en synchrone par d'autres microservices :**
-  - Expose `GET /api/certifications/:userId` appelé par `job-board-service` pour vérifier les compétences réelles d'un candidat avant transmission de son dossier au recruteur.
-  - Expose `POST /api/gamification/profiles` appelé par `auth-service` lors de l'inscription pour initialiser le compte joueur.
+- **Explication simple :** Quand un élève termine un cours, le service appelle `course-service` pour obtenir le titre exact du cours à écrire sur son certificat officiel.
+- **Service également appelé en synchrone par les autres :**
+  - Expose `GET /api/certifications/:userId` : appelé par `job-board-service` pour vérifier les compétences et badges réels d'un candidat.
+  - Expose `POST /api/gamification/profiles` : appelé par `auth-service` pour créer le profil de points à l'inscription.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `BadgeUnlockedEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `gamification.badge.unlocked`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_gamif_4418",
-    "eventType": "BADGE_UNLOCKED",
-    "userId": "usr_9823f4a1",
-    "badgeId": "bdg_algo_master",
-    "badgeTitle": "Maître Algorithmique",
-    "xpAwarded": 50,
-    "newTotalXP": 1550,
-    "timestamp": "2026-11-09T14:35:05Z"
-  }
-  ```
-- **Justification :** Informe `job-board-service` pour recalculer les scores de matching d'emploi et `notification-service` pour diffuser une célébration live sur l'écran de l'étudiant.
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `gamification.badge.unlocked`)
+- **Explication simple :** Quand un apprenant atteint un palier de points ou réussit un défi, le service publie cet événement pour informer le Job Board et afficher une animation de félicitations.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
 - **Événements consommés :**
-  1. `CodeSolutionPassedEvent` (Queue: `gamification.code_passed.queue`) émis par `code-execution-service`.
-     - *Action :* Crédite +50 XP, recalcule le niveau et vérifie si un nouveau badge doit être débloqué.
-  2. `CourseCompletedEvent` (Queue: `gamification.course_completed.queue`) émis par `course-service`.
-     - *Action :* Déclenche la génération du certificat numérique signé et l'émission de `CertificateIssuedEvent`.
+  1. `CodeSolutionPassedEvent` (émis par `code-execution-service`) : Ajoute automatiquement +50 XP au joueur et recalcule son niveau.
+  2. `CourseCompletedEvent` (émis par `course-service`) : Génère automatiquement le certificat officiel signé de fin de parcours.
 
 ---
 

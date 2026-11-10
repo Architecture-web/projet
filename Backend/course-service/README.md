@@ -71,39 +71,28 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `auth-service` pour vérifier l'identité de l'enseignant avant de publier un cours.
+> - **Asynchrone (Publie) :** Émet `CourseCompletedEvent` pour avertir que l'élève a terminé le cours et lui délivrer son certificat.
+> - **Asynchrone (Consomme) :** Écoute `CodeSolutionPassedEvent` pour valider automatiquement la leçon dès que le code est correct.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `auth-service` (Port 8081)
 - **Endpoint appelé :** `GET http://localhost:8081/api/auth/users/:instructorId/summary`
-- **Réponse reçue :** `{ "id": "usr_ins_42", "fullName": "Dr. Thomas Martin", "role": "ROLE_INSTRUCTOR", "isActive": true }`
-- **Code de retour attendu :** `200 OK`
-- **Justification technique :** Lors de la création d'un cours (`POST /api/courses`), le service doit obligatoirement valider en temps réel que le créateur est un instructeur actif et récupérer son nom d'affichage officiel sans dupliquer la table des utilisateurs.
-- **Service également appelé en synchrone par d'autres microservices :**
-  - Expose `GET /api/courses/:courseId/exercises/:exerciseId/test-cases` appelé par `code-execution-service` pour récupérer les jeux de tests unitaires avant exécution dans la sandbox.
-  - Expose `GET /api/courses/:id` appelé par `gamification-service` pour obtenir le titre exact lors de l'émission du certificat.
+- **Explication simple :** Quand un enseignant crée un cours, on vérifie en direct auprès du service d'authentification que son compte existe et qu'il a bien le rôle d'enseignant.
+- **Service également appelé en synchrone par les autres :**
+  - Expose `GET /api/courses/:courseId/exercises/:exerciseId/test-cases` : appelé par `code-execution-service` pour obtenir les tests d'un exercice.
+  - Expose `GET /api/courses/:id` : appelé par `gamification-service` pour récupérer le nom officiel du cours pour le certificat.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `CourseCompletedEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `course.completion.completed`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_crs_8821",
-    "eventType": "COURSE_COMPLETED",
-    "userId": "usr_9823f4a1",
-    "courseId": "crs_java_adv_01",
-    "courseTitle": "Java & Architecture Distribuée",
-    "completionDate": "2026-11-09T14:30:00Z"
-  }
-  ```
-- **Justification :** Informe de manière asynchrone le service de gamification pour déclencher automatiquement l'émission du certificat officiel de réussite.
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `course.completion.completed`)
+- **Explication simple :** Dès qu'un élève valide 100% des leçons d'un cours, le service publie cet événement pour que le service de gamification lui génère son certificat officiel.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
-- **Événement consommé :** `CodeSolutionPassedEvent`
+- **Événement consommé :** `CodeSolutionPassedEvent` (émis par `code-execution-service`)
 - **Queue écoutée :** `course.code_passed.queue`
-- **Émetteur d'origine :** `code-execution-service`
-- **Routing Key :** `code.solution.passed`
-- **Action déclenchée :** À la réception de l'événement, le service extrait `userId` et `exerciseId`, recherche la leçon pratique correspondante et la marque comme validée (`markLessonCompleted`) dans le document `UserProgress`, puis recalcule le pourcentage de complétion du cours.
+- **Explication simple :** Dès que le code d'un élève réussit tous les tests dans la sandbox, le service valide automatiquement la leçon correspondante dans sa barre de progression.
 
 ---
 

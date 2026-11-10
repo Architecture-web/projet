@@ -74,29 +74,27 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `auth-service` pour afficher le nom et l'avatar de l'auteur d'un message.
+> - **Asynchrone (Publie) :** Émet `UserReportedAbuseEvent` vers l'Auth Service en cas d'abus ou de triche signalée.
+> - **Asynchrone (Consomme) :** Écoute `CodeSolutionPassedEvent` pour débloquer l'accès aux solutions des camarades.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `auth-service` (Port 8081)
 - **Endpoint appelé :** `GET http://localhost:8081/api/auth/users/:authorId/summary`
-- **Réponse reçue :** `{ "id": "usr_9823f4a1", "fullName": "Sarah Benali", "avatarUrl": "https://..." }`
-- **Code de retour attendu :** `200 OK`
-- **Justification technique :** Lors de l'affichage d'un fil de discussion ou d'une revue de code, le service doit afficher le nom et l'avatar de l'auteur en temps réel sans jamais dupliquer de table de profils dans sa base MongoDB.
+- **Explication simple :** Quand un étudiant consulte les questions du forum, le service demande en direct à `auth-service` le nom et la photo de l'auteur sans copier les comptes dans sa base.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événements publiés :**
-  1. `UserReportedAbuseEvent`
-     - **Exchange :** `skillquest.events` (Topic)
-     - **Routing Key :** `community.user.reported`
-     - **Payload :** `{ "targetUserId": "usr_bad_actor_9", "reason": "Spam & insultes", "reporterId": "usr_102" }`
-     - **Justification :** Permet à `auth-service` de suspendre automatiquement un utilisateur malveillant.
-  2. `HelpfulCommentVotedEvent` (Routing Key: `community.comment.upvoted`)
-     - Informe `notification-service` pour avertir l'auteur que sa réponse a reçu un upvote (+1).
+  1. `UserReportedAbuseEvent` (Topic `community.user.reported`) :
+     - **Explication simple :** Si plusieurs élèves signalent un utilisateur pour spoil ou message inapproprié, cet événement est envoyé à `auth-service` pour bloquer son compte.
+  2. `HelpfulCommentVotedEvent` (Topic `community.comment.upvoted`) :
+     - **Explication simple :** Envoie une notification à l'auteur pour lui indiquer qu'un camarade a trouvé sa réponse utile.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
-- **Événement consommé :** `CodeSolutionPassedEvent`
+- **Événement consommé :** `CodeSolutionPassedEvent` (émis par `code-execution-service`)
 - **Queue écoutée :** `community.code_passed.queue`
-- **Émetteur d'origine :** `code-execution-service`
-- **Routing Key :** `code.solution.passed`
-- **Action déclenchée :** *Règle métier majeure !* Tant qu'un élève n'a pas validé un exercice de code, il lui est strictement interdit d'accéder aux solutions de la communauté (*Peer-Review*). À la réception de cet événement pour un couple `(userId, exerciseId)`, le service débloque les droits de lecture et de partage de solutions pour cet élève sur cet exercice précis.
+- **Explication simple :** Tant qu'un élève n'a pas réussi l'exercice, il ne peut pas voir les solutions des autres. Dès que son code réussit les tests, cet événement lui débloque automatiquement l'accès à l'espace d'échange.
 
 ---
 

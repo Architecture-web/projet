@@ -63,38 +63,27 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `gamification-service` pour créer le profil du joueur dès son inscription.
+> - **Asynchrone (Publie) :** Émet `UserRegisteredEvent` pour déclencher l'envoi de l'e-mail de bienvenue.
+> - **Asynchrone (Consomme) :** Écoute `UserReportedAbuseEvent` pour suspendre automatiquement un utilisateur signalé.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `gamification-service` (Port 8084)
 - **Endpoint appelé :** `POST http://localhost:8084/api/gamification/profiles`
-- **Payload transmis :** `{ "userId": "usr_9823f4a1", "initialXP": 0 }`
-- **Code de retour attendu :** `201 Created`
-- **Justification technique :** Dès qu'un nouvel utilisateur s'inscrit, son compte doit immédiatement disposer d'un profil de gamification initialisé avant que l'utilisateur n'accède à son tableau de bord. Un appel synchrone garantit la cohérence immédiate du profil.
-- **Service également appelé en synchrone par d'autres microservices :**
-  - Expose `GET /api/auth/users/:id/summary` appelé par `course-service` et `community-service` pour obtenir le nom et l'avatar de l'auteur sans dupliquer les profils.
+- **Explication simple :** Quand un utilisateur s'inscrit, on appelle tout de suite le service de gamification pour lui créer son profil avec 0 point.
+- **Service également appelé en synchrone par les autres :**
+  - Expose `GET /api/auth/users/:id/summary` : appelé par `course-service` et `community-service` pour récupérer le nom et l'avatar de l'utilisateur.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `UserRegisteredEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `auth.user.registered`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_auth_101",
-    "eventType": "USER_REGISTERED",
-    "userId": "usr_9823f4a1",
-    "email": "sarah.benali@example.com",
-    "role": "ROLE_STUDENT",
-    "timestamp": "2026-11-09T10:00:00Z"
-  }
-  ```
-- **Justification :** Permet à `notification-service` d'envoyer l'e-mail de bienvenue et d'activation de manière asynchrone sans ralentir la réponse HTTP d'inscription.
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `auth.user.registered`)
+- **Explication simple :** Le service publie cet événement après chaque inscription pour que le service de notification envoie l'e-mail de bienvenue sans bloquer l'utilisateur.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
-- **Événement consommé :** `UserReportedAbuseEvent`
+- **Événement consommé :** `UserReportedAbuseEvent` (émis par `community-service`)
 - **Queue écoutée :** `auth.abuse_reported.queue`
-- **Émetteur d'origine :** `community-service`
-- **Routing Key :** `community.user.reported`
-- **Action déclenchée :** À la réception du message, si le nombre de signalements dépasse le seuil critique (3 abus vérifiés), le service passe automatiquement `isActive = false` pour suspendre temporairement le compte jusqu'à modération humaine.
+- **Explication simple :** Si un membre est signalé plusieurs fois pour comportement abusif sur le forum, le service désactive automatiquement son compte.
 
 ---
 

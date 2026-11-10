@@ -60,49 +60,25 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `gamification-service` pour vérifier les vrais badges d'un élève qui postule.
+> - **Asynchrone (Publie) :** Émet `JobApplicationSubmittedEvent` pour avertir le recruteur qu'un candidat a postulé.
+> - **Asynchrone (Consomme) :** Écoute `BadgeUnlockedEvent` pour recalculer les offres d'emploi compatibles avec l'élève.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `gamification-service` (Port 8084)
 - **Endpoint appelé :** `GET http://localhost:8084/api/certifications/:candidateId`
-- **Réponse reçue :**
-  ```json
-  {
-    "userId": "usr_9823f4a1",
-    "totalXP": 3250,
-    "level": "Senior Learner",
-    "verifiedBadges": [
-      { "id": "bdg_algo_master", "title": "Maître Algorithmique" },
-      { "id": "bdg_spring_pro", "title": "Expert Spring Boot" }
-    ]
-  }
-  ```
-- **Code de retour attendu :** `200 OK`
-- **Justification technique :** Lorsqu'un candidat soumet sa candidature (`POST /api/jobs/:id/apply`), le Job Board doit impérativement certifier son niveau en direct. Un appel REST synchrone garantit que le recruteur ne reçoit que des données authentifiées à la source sans stocker de doublons non synchronisés.
+- **Explication simple :** Quand un candidat postule à une offre, le service demande en direct à `gamification-service` son total de points et ses badges certifiés pour prouver son niveau au recruteur.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `JobApplicationSubmittedEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `job.application.submitted`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_job_5541",
-    "eventType": "JOB_APPLICATION_SUBMITTED",
-    "applicationId": "app_55419",
-    "jobId": "job_94812",
-    "candidateId": "usr_9823f4a1",
-    "recruiterId": "usr_rec_7712",
-    "matchingScore": 94,
-    "timestamp": "2026-11-09T14:40:00Z"
-  }
-  ```
-- **Justification :** Informe `notification-service` pour alerter instantanément le recruteur par e-mail et notification dans son espace entreprise d'un profil correspondant à 94% à son offre.
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `job.application.submitted`)
+- **Explication simple :** Dès qu'un candidat dépose son dossier, le service publie cet événement pour que le recruteur reçoive immédiatement un e-mail et une notification avec le score de compatibilité.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
-- **Événement consommé :** `BadgeUnlockedEvent`
+- **Événement consommé :** `BadgeUnlockedEvent` (émis par `gamification-service`)
 - **Queue écoutée :** `job_board.badge_unlocked.queue`
-- **Émetteur d'origine :** `gamification-service`
-- **Routing Key :** `gamification.badge.unlocked`
-- **Action déclenchée :** À la réception du nouvel insigne obtenu par l'élève, le Job Board recalcule en tâche de fond les scores de matching des offres ouvertes pour ce profil et met à jour les offres recommandées sur le tableau de bord de l'étudiant.
+- **Explication simple :** Dès qu'un élève débloque un nouveau badge, le service recalcule automatiquement les offres d'emploi qui correspondent à son nouveau profil.
 
 ---
 

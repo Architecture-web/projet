@@ -71,45 +71,25 @@ classDiagram
 
 ## ⚡ 3. Exigences Techniques AWD – Interactions Inter-Services
 
+> **En résumé :**
+> - **Synchrone (REST) :** Appelle `course-service` pour récupérer les cas de tests avant de lancer l'exécution.
+> - **Asynchrone (Publie) :** Émet `CodeSolutionPassedEvent` dès que le code de l'élève est validé (donne des points XP et valide la leçon).
+> - **Asynchrone (Consomme) :** Écoute `ExerciseCreatedEvent` pour préparer à l'avance les conteneurs Docker de compilation.
+
 ### 3.1. Communication Synchrone REST (Au moins 1)
 - **Appel émis vers :** `course-service` (Port 8082)
 - **Endpoint appelé :** `GET http://localhost:8082/api/courses/:courseId/exercises/:exerciseId/test-cases`
-- **Réponse reçue :**
-  ```json
-  [
-    { "id": "tc_1", "input": "[2, 7, 11, 15], target = 9", "expectedOutput": "[0, 1]", "isHidden": false },
-    { "id": "tc_2", "input": "[3, 2, 4], target = 6", "expectedOutput": "[1, 2]", "isHidden": false },
-    { "id": "tc_3", "input": "[3, 3], target = 6", "expectedOutput": "[0, 1]", "isHidden": true }
-  ]
-  ```
-- **Code de retour attendu :** `200 OK`
-- **Justification technique :** Le service d'exécution de code est strictement découplé du contenu pédagogique : il ne stocke aucun énoncé ni jeu de test en dur. Avant de lancer le conteneur sandbox, il interroge en direct le `course-service` pour obtenir la liste à jour des assertions à tester.
+- **Explication simple :** Le service ne stocke pas les tests. Avant de compiler le code, il demande en direct à `course-service` la liste des tests à exécuter.
 
 ### 3.2. Publication d'un Événement Métier (Au moins 1)
 - **Événement publié :** `CodeSolutionPassedEvent`
-- **Exchange RabbitMQ :** `skillquest.events` (Topic)
-- **Routing Key :** `code.solution.passed`
-- **Payload JSON :**
-  ```json
-  {
-    "eventId": "evt_code_9918",
-    "eventType": "CODE_SOLUTION_PASSED",
-    "userId": "usr_9823f4a1",
-    "exerciseId": "ex_binary_search_01",
-    "language": "JAVA",
-    "executionTimeMs": 42,
-    "memoryUsedMb": 28.5,
-    "timestamp": "2026-11-09T14:35:00Z"
-  }
-  ```
-- **Justification :** Événement pivot de l'architecture ! Sa publication déclenche en parallèle la progression du cours (`course-service`), le crédit d'XP (+50 XP dans `gamification-service`), l'ouverture de l'espace de discussion (`community-service`) et l'alerte temps réel (`notification-service`).
+- **Exchange RabbitMQ :** `skillquest.events` (Topic `code.solution.passed`)
+- **Explication simple :** Dès que tous les tests passent avec succès, le service publie cet événement. Cela permet aux autres services de donner des points d'XP à l'élève, de valider sa leçon et d'afficher un message de succès en direct.
 
 ### 3.3. Consommation d'un Événement Métier (Au moins 1)
-- **Événement consommé :** `ExerciseCreatedEvent`
+- **Événement consommé :** `ExerciseCreatedEvent` (émis par `course-service`)
 - **Queue écoutée :** `code_exec.exercise_created.queue`
-- **Émetteur d'origine :** `course-service`
-- **Routing Key :** `course.exercise.created`
-- **Action déclenchée :** À la création d'un nouvel exercice par un instructeur, le service pré-chauffe (*warm-up*) les images Docker et les compilateurs associés sur le serveur d'exécution pour que la première soumission de l'élève s'exécute sans latence d'initialisation d'image.
+- **Explication simple :** Quand un enseignant ajoute un nouvel exercice dans un cours, le service télécharge et prépare à l'avance l'environnement Docker pour exécuter le code sans temps d'attente.
 
 ---
 
