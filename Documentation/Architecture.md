@@ -115,21 +115,24 @@ flowchart TD
 
 ---
 
-##  Modes de Communication
+## 4. Modes de Communication
+
+> **En clair :**
+> - **Synchrone (REST) :** Pour les demandes directes avec réponse immédiate.
+> - **Asynchrone (RabbitMQ) :** Pour diffuser des actions sans bloquer ni ralentir l'application.
 
 ### 4.1. Communications Synchrones (HTTP REST)
-Utilisées pour les requêtes de lecture et de consultation directe nécessitant un résultat immédiat :
-- Le client appelle les endpoints via l'**API Gateway**.
-- **Exemple inter-services :** Le *Job Board Service* effectue un appel direct `GET /api/certifications/{userId}` vers le *Gamification Service* pour valider instantanément les badges réels d'un candidat avant d'accepter une candidature.
+Utilisées pour obtenir une information en temps réel :
+- **Principe :** L'API Gateway reçoit la requête du client et la transmet au bon service.
+- **Exemple simple :** Quand un candidat postule, le **Job Board Service** appelle directement en REST `GET /api/certifications/{userId}` sur le **Gamification Service** pour vérifier immédiatement ses vrais badges.
 
-### 4.2. Communications Asynchrones (Event-Driven via RabbitMQ)
-Utilisées pour découpler les services, améliorer les performances et garantir la résilience du système :
-- **Scénario :** Un apprenant soumet une solution de code qui valide tous les tests unitaires.
-- **Flux d'événements :**
-  1. Le `Code Execution Service` publie l'événement `CodeSolutionPassedEvent` sur le topic exchange de RabbitMQ.
-  2. Le `Gamification Service` consomme cet événement, crédite +50 XP et débloque le badge correspondant.
-  3. Le `Course Content Service` consomme l'événement et marque la leçon comme "Validée".
-  4. Le `Notification Service` consomme l'événement et pousse instantanément une alerte WebSocket sur le navigateur du client.
+### 4.2. Communications Asynchrones (Événements RabbitMQ)
+Utilisées pour découpler les services et exécuter plusieurs actions en parallèle sans attente :
+- **Exemple concret :** Un élève réussit un exercice de code.
+  1. Le **Code Execution Service** publie l'événement `CodeSolutionPassedEvent`.
+  2. Le **Gamification Service** reçoit l'événement et ajoute +50 XP à l'élève.
+  3. Le **Course Content Service** reçoit l'événement et valide automatiquement la leçon.
+  4. Le **Notification Service** reçoit l'événement et affiche instantanément une alerte de félicitations sur l'écran.
 
 ---
 
