@@ -115,7 +115,7 @@ flowchart TD
 
 ---
 
-## 4. Modes de Communication
+##  Modes de Communication
 
 ### 4.1. Communications Synchrones (HTTP REST)
 Utilisées pour les requêtes de lecture et de consultation directe nécessitant un résultat immédiat :
