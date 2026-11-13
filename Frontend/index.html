@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>SkillQuest — Plateforme d'Apprentissage, d'Évaluation de Code & Recrutement Technique</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              900: '#0f172a',
+              accent: '#2563eb',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #ffffff;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    
+    .clean-card {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .clean-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+      transform: translateY(-2px);
+    }
+
+    .subtle-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    }
+
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    dialog[open] {
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.96) translateY(6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col subtle-grid selection:bg-slate-900 selection:text-white">
+
+  <!-- TOP NAVBAR -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center space-x-2.5 flex-shrink-0">
+        <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900">
+            SkillQuest
+          </span>
+          <span class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-medium border border-slate-200">
+            Platform
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+        <a href="#explore-courses" class="hover:text-slate-900 transition-colors">Cours &amp; Exercices</a>
+        <a href="#sandbox" class="hover:text-slate-900 transition-colors">Sandbox</a>
+        <a href="#students" class="hover:text-slate-900 transition-colors">Étudiants</a>
+        <a href="#solutions" class="hover:text-slate-900 transition-colors">Entreprises</a>
+        <a href="#infrastructure" class="hover:text-slate-900 transition-colors">Architecture</a>
+      </nav>
+
+      <!-- Desktop Auth Actions -->
+      <div id="authHeaderActions" class="hidden sm:flex items-center space-x-2.5">
+        <button onclick="openDialog('loginModal')" class="text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 transition-colors">
+          Connexion
+        </button>
+        <button onclick="openDialog('registerModal')" class="text-xs sm:text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3.5 sm:px-4 py-2 rounded-lg shadow-sm transition-all hover:shadow whitespace-nowrap">
+          Rejoindre la plateforme
+        </button>
+      </div>
+
+      <!-- User Profile (Connected) -->
+      <div id="userProfileHeader" class="hidden items-center space-x-2 sm:space-x-3">
+        <a id="dashboardNavLink" href="dashboard-student.html" class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+          <span>Mon Dashboard</span>
+        </a>
+        <div class="flex items-center space-x-2 py-1 px-2.5 sm:px-3 rounded-full bg-slate-100 border border-slate-200">
+          <img id="userAvatarNav" src="" alt="Avatar" class="w-6 h-6 rounded-full bg-white object-cover">
+          <span id="userNameNav" class="text-xs font-semibold text-slate-900 max-w-[85px] sm:max-w-[120px] truncate"></span>
+          <span id="userRoleBadgeNav" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">STUDENT</span>
+        </div>
+        <button onclick="logout()" title="Déconnexion" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Mobile Hamburger Button -->
+      <div class="flex items-center sm:hidden space-x-2">
+        <button onclick="toggleMobileMenu()" class="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Menu de navigation">
+          <i data-lucide="menu" id="mobileMenuIcon" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Slide-Down Menu -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-3 shadow-lg">
+      <div class="flex flex-col space-y-2 text-sm font-medium text-slate-700">
+        <a href="#explore-courses" onclick="closeMobileMenu()" class="px-2 py-1.5 rounded-lg hover:bg-slate-100">Explorer les Cours</a>
+        <a href="#sandbox" onclick="closeMobileMenu()" class="px-2 py-1.5 rounded-lg hover:bg-slate-100">Sandbox de Code</a>
+        <a href="#students" onclick="closeMobileMenu()" class="px-2 py-1.5 rounded-lg hover:bg-slate-100">Espace Étudiants</a>
+        <a href="#solutions" onclick="closeMobileMenu()" class="px-2 py-1.5 rounded-lg hover:bg-slate-100">Pour Entreprises</a>
+        <a href="#infrastructure" onclick="closeMobileMenu()" class="px-2 py-1.5 rounded-lg hover:bg-slate-100">Architecture</a>
+      </div>
+      <div id="mobileAuthBlock" class="pt-3 border-t border-slate-100 flex flex-col gap-2">
+        <button onclick="closeMobileMenu(); openDialog('loginModal')" class="w-full py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg">
+          Se connecter
+        </button>
+        <button onclick="closeMobileMenu(); openDialog('registerModal')" class="w-full py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg">
+          Rejoindre la plateforme
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow">
+
+    <!-- HERO SECTION -->
+    <section class="pt-12 pb-14 sm:pt-20 sm:pb-20 lg:pt-28 lg:pb-24 max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      
+      <!-- Professional Value Badge -->
+      <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 mb-6 shadow-sm">
+        <span class="flex h-2 w-2 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span class="font-medium text-slate-800">Évaluation de Code en Temps Réel &bull; Certifications Recruteurs</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.18] sm:leading-[1.12]">
+        Apprenez par la pratique. Prouvez votre valeur par le code.
+      </h1>
+
+      <!-- Professional Subtitle -->
+      <p class="mt-4 sm:mt-6 text-base sm:text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+        <strong>SkillQuest</strong> permet à chaque étudiant de tester ses algorithmes dans une <strong>sandbox Docker en direct</strong>, et d'obtenir des certifications infalsifiables directement consultées par les entreprises tech.
+      </p>
+
+      <!-- Action CTAs -->
+      <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="#explore-courses" class="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center justify-center space-x-2">
+          <span>Consulter le catalogue de cours</span>
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+        </a>
+        <a href="#sandbox" class="w-full sm:w-auto px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center justify-center space-x-2">
+          <i data-lucide="play" class="w-4 h-4 text-blue-600"></i>
+          <span>Tester la Sandbox de Code</span>
+        </a>
+      </div>
+
+      <!-- Trust Metrics Strip -->
+      <div class="mt-12 sm:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-8 sm:pt-10 border-t border-slate-200 text-left">
+        <div class="p-2 sm:p-0">
+          <div class="text-xl sm:text-2xl font-bold font-mono text-slate-900">OAuth 2.0</div>
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Google &amp; GitHub Réels</div>
+        </div>
+        <div class="p-2 sm:p-0">
+          <div class="text-xl sm:text-2xl font-bold font-mono text-slate-900">&lt; 2s</div>
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Compilation &amp; tests sandbox</div>
+        </div>
+        <div class="p-2 sm:p-0">
+          <div class="text-xl sm:text-2xl font-bold font-mono text-slate-900">+50 XP / Défi</div>
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Progression gamifiée &amp; badges</div>
+        </div>
+        <div class="p-2 sm:p-0">
+          <div class="text-xl sm:text-2xl font-bold font-mono text-slate-900">Redirection</div>
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Dashboard par rôle RBAC</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SECTION: COURSES & EXERCISES CATALOG -->
+    <section id="explore-courses" class="py-14 sm:py-16 bg-slate-50 border-y border-slate-200">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+          <div>
+            <span class="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider">Catalogue Ouvert aux Étudiants</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 tracking-tight">
+              Explorez les parcours et entraînez-vous
+            </h2>
+            <p class="mt-1 text-xs sm:text-sm text-slate-600">
+              Des modules conçus pour consolider vos compétences et préparer vos entretiens d'embauche.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+          
+          <!-- Course Card 1 -->
+          <div class="clean-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                  Java &bull; Spring Boot
+                </span>
+                <span class="text-xs font-semibold text-emerald-600 flex items-center space-x-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Intermédiaire</span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">Architectures Distribuées &amp; Microservices</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+                Apprenez à concevoir des APIs REST scalables, à câbler RabbitMQ et à isoler les bases de données par service.
+              </p>
+            </div>
+            
+            <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs text-slate-500 font-medium">12 leçons &bull; 6 défis code</span>
+              <button onclick="openDialog('registerModal')" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1">
+                <span>Consulter</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Course Card 2 -->
+          <div class="clean-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                  Algorithmes &bull; Structures
+                </span>
+                <span class="text-xs font-semibold text-blue-600 flex items-center space-x-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  <span>Tous niveaux</span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">Maîtrise de la Complexité &amp; Algorithmes</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+                Recherche dichotomique, tables de hachage, arbres binaires et dynamique. Évaluez votre code en $O(N)$ dans la sandbox.
+              </p>
+            </div>
+            
+            <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs text-slate-500 font-medium">24 exercices &bull; Sandbox</span>
+              <button onclick="openDialog('registerModal')" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1">
+                <span>Consulter</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Course Card 3 -->
+          <div class="clean-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                  Web &bull; React &amp; TypeScript
+                </span>
+                <span class="text-xs font-semibold text-emerald-600 flex items-center space-x-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Avancé</span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">Applications Web Réactives &amp; WebSockets</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+                Gestion d'état global, consommation de flux d'événements en direct (WebSockets) et intégration sécurisée des jetons JWT.
+              </p>
+            </div>
+            
+            <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs text-slate-500 font-medium">10 modules &bull; Projet guidé</span>
+              <button onclick="openDialog('registerModal')" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1">
+                <span>Consulter</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION: SANDBOX ENGINE -->
+    <section id="sandbox" class="py-14 sm:py-16 max-w-6xl mx-auto px-4 sm:px-6">
+      
+      <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-10">
+        
+        <div class="w-full lg:w-5/12 text-left">
+          <span class="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider">Moteur d'Exécution Sécurisé</span>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 tracking-tight">
+            Évaluation automatisée en environnement hermétique
+          </h2>
+          <p class="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Chaque bloc de code soumis est compilé dans un conteneur éphémère sans accès internet, contraint à 128 Mo de mémoire vive avec un timeout d'exécution de 2 secondes.
+          </p>
+
+          <div class="mt-5 space-y-2 text-xs text-slate-600">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="check" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+              <span>Tests unitaires publics et assertions cachées</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="check" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+              <span>Mesure exacte du temps de calcul et de l'empreinte mémoire</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i data-lucide="check" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+              <span>Certification immédiate des résultats sans latence</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full lg:w-7/12">
+          <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 shadow-lg">
+            
+            <div class="bg-slate-950 px-3 sm:px-4 py-2.5 flex items-center justify-between border-b border-slate-800">
+              <div class="flex items-center space-x-2 overflow-hidden">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-700 flex-shrink-0"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-700 flex-shrink-0"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-700 flex-shrink-0"></span>
+                <span class="ml-1 sm:ml-2 font-mono text-[11px] sm:text-xs text-slate-400 truncate">Solution.java (Challenge #42 TwoSum)</span>
+              </div>
+              <span class="text-[10px] sm:text-[11px] font-mono text-slate-400 flex-shrink-0">OpenJDK 17 Sandbox</span>
+            </div>
+
+            <div class="p-3 sm:p-4 font-mono text-[11px] sm:text-xs text-slate-300 overflow-x-auto leading-relaxed max-w-full">
+<pre class="whitespace-pre"><code><span class="text-blue-400">public class</span> <span class="text-amber-300">Solution</span> {
+    <span class="text-blue-400">public int[]</span> <span class="text-emerald-400">twoSum</span>(<span class="text-blue-400">int[]</span> nums, <span class="text-blue-400">int</span> target) {
+        Map&lt;Integer, Integer&gt; map = <span class="text-blue-400">new</span> HashMap&lt;&gt;();
+        <span class="text-blue-400">for</span> (<span class="text-blue-400">int</span> i = 0; i &lt; nums.length; i++) {
+            <span class="text-blue-400">int</span> diff = target - nums[i];
+            <span class="text-blue-400">if</span> (map.containsKey(diff)) <span class="text-blue-400">return new int[]</span> { map.get(diff), i };
+            map.put(nums[i], i);
+        }
+        <span class="text-blue-400">return new int[]</span> {};
+    }
+}</code></pre>
+            </div>
+
+            <div class="bg-slate-950 px-3 sm:px-4 py-3 border-t border-slate-800 flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2.5">
+              <div id="sandboxStatusText" class="flex items-center space-x-2 text-[11px] sm:text-xs font-mono text-slate-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                <span class="truncate">Prêt pour évaluation (3 tests unitaires)</span>
+              </div>
+              <button id="runCodeBtn" onclick="runSandboxSimulation()" class="w-full xs:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-semibold font-mono transition-colors flex items-center justify-center space-x-1.5 shadow-sm flex-shrink-0">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span>Lancer l'évaluation</span>
+              </button>
+            </div>
+
+            <div id="sandboxEventBanner" class="hidden bg-slate-800/80 px-3 sm:px-4 py-2 text-[11px] font-mono text-slate-300 border-t border-slate-700">
+              <span class="text-emerald-400 font-bold">[Vérification Validée]</span>
+              <span>Tous les tests unitaires ont réussi en 38 ms &bull; Compétence certifiée</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- SECTION: FOR STUDENTS -->
+    <section id="students" class="py-14 sm:py-16 bg-white border-y border-slate-200">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        
+        <div class="text-center max-w-2xl mx-auto mb-12">
+          <span class="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider">Parcours Étudiant</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">
+            Ce que SkillQuest apporte aux étudiants
+          </h2>
+          <p class="mt-2 text-xs sm:text-sm text-slate-600">
+            Une expérience complète pour progresser en programmation et valoriser son travail auprès du monde professionnel.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
+          
+          <div class="p-5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm mb-3">
+              <i data-lucide="code" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">1. Pratique Sandbox</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Exécutez votre code dans un environnement Docker sécurisé sans installer d'outils lourds en local.
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm mb-3">
+              <i data-lucide="trophy" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">2. XP &amp; Badges</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Chaque défi résolu rapporte +50 XP et débloque des badges officiels attestant de votre progression.
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div class="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm mb-3">
+              <i data-lucide="users-round" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">3. Peer-Review</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Une fois un exercice réussi, accédez aux solutions optimisées des autres élèves pour comparer vos complexités.
+            </p>
+          </div>
+
+          <div class="p-5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm mb-3">
+              <i data-lucide="briefcase" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">4. Emploi &amp; Stages</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Postulez aux offres des entreprises partenaires avec votre profil certifié SHA-256 sans test technique éliminatoire.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION: INFRASTRUCTURE -->
+    <section id="infrastructure" class="py-14 sm:py-16 bg-slate-50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        
+        <div class="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+          <span class="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Architecture Distribuée</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 tracking-tight">
+            Une architecture scalable en microservices
+          </h2>
+          <p class="mt-2 text-xs sm:text-sm text-slate-600">
+            Conçue pour isoler les traitements intensifs (compilation de code) des services de consultation et de gestion des identités.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 text-left">
+          
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs mb-3">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Sécurité &amp; Rôles RBAC</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Tokens JWT signés, mot de passe oublié sécurisé, OAuth Google/GitHub et redirection intelligente par rôle.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs mb-3">
+              <i data-lucide="database" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Bases de Données Découplées</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              PostgreSQL pour l'intégrité transactionnelle stricte, MongoDB pour les profils et Redis pour les files de traitement en mémoire.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm sm:col-span-2 md:col-span-1">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs mb-3">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Communications Événementielles</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Architecture asynchrone par messages pour garantir la disponibilité du système même lors de pics de soumission de code.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PROFESSIONAL FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-8 sm:py-10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-center sm:text-left">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+          S
+        </div>
+        <span class="font-bold text-slate-900">SkillQuest Inc.</span>
+        <span>&bull;</span>
+        <span class="truncate">Plateforme d'Apprentissage &bull; Évaluation de Code &bull; Recrutement</span>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-center gap-4 text-slate-500 text-xs">
+        <a href="#explore-courses" class="hover:text-slate-900 transition-colors">Cours</a>
+        <a href="#students" class="hover:text-slate-900 transition-colors">Étudiants</a>
+        <a href="#solutions" class="hover:text-slate-900 transition-colors">Entreprises</a>
+        <a href="#sandbox" class="hover:text-slate-900 transition-colors">Sandbox</a>
+        <span>&copy; 2026 SkillQuest</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- RESPONSIVE DIALOG: LOGIN (WITH GOOGLE, GITHUB, MICROSOFT & FORGOT PASSWORD) -->
+  <dialog id="loginModal" class="bg-white rounded-2xl p-5 sm:p-7 max-w-sm w-[92vw] sm:w-full border border-slate-200 shadow-xl m-auto text-left">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <h2 class="text-base font-bold text-slate-900">Connexion</h2>
+      <button onclick="closeDialog('loginModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Social OAuth Buttons -->
+    <div class="mt-4 space-y-2">
+      <!-- Google -->
+      <button onclick="handleSocialAuth('GOOGLE')" class="w-full py-2 px-3 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center space-x-2 transition-colors">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Continuer avec Google</span>
+      </button>
+
+      <!-- GitHub -->
+      <button onclick="handleSocialAuth('GITHUB')" class="w-full py-2 px-3 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center space-x-2 transition-colors">
+        <svg class="w-4 h-4 fill-slate-900" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        <span>Continuer avec GitHub</span>
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div class="relative my-4">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+      <div class="relative flex justify-center text-[10px] uppercase font-mono"><span class="bg-white px-2 text-slate-400">Ou avec e-mail</span></div>
+    </div>
+
+    <form onsubmit="handleLogin(event)" class="space-y-3">
+      <div>
+        <label for="loginEmail" class="block text-xs font-medium text-slate-700 mb-1">E-mail</label>
+        <input type="email" id="loginEmail" required placeholder="nom@exemple.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all">
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label for="loginPassword" class="block text-xs font-medium text-slate-700">Mot de passe</label>
+          <button type="button" onclick="switchDialog('loginModal', 'forgotPasswordModal')" class="text-[11px] text-blue-600 hover:underline">Mot de passe oublié ?</button>
+        </div>
+        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all">
+      </div>
+
+      <div id="loginError" class="hidden p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg">
+        <span id="loginErrorText"></span>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm">
+        Accéder à mon espace
+      </button>
+    </form>
+
+    <div class="mt-4 text-center text-xs text-slate-500">
+      Nouveau sur SkillQuest ? 
+      <button onclick="switchDialog('loginModal', 'registerModal')" class="text-blue-600 font-semibold hover:underline">Créer un compte</button>
+    </div>
+  </dialog>
+
+  <!-- RESPONSIVE DIALOG: REGISTER -->
+  <dialog id="registerModal" class="bg-white rounded-2xl p-5 sm:p-7 max-w-md w-[92vw] sm:w-full border border-slate-200 shadow-xl m-auto text-left max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Créer un compte</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Accédez aux cours, défis et certifications</p>
+      </div>
+      <button onclick="closeDialog('registerModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Social OAuth Inscription -->
+    <div class="mt-4 space-y-2">
+      <button onclick="handleSocialAuth('GOOGLE')" class="w-full py-2 px-3 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center space-x-2 transition-colors">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>S'inscrire avec Google</span>
+      </button>
+      <button onclick="handleSocialAuth('GITHUB')" class="w-full py-2 px-3 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center space-x-2 transition-colors">
+        <svg class="w-4 h-4 fill-slate-900" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        <span>S'inscrire avec GitHub</span>
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div class="relative my-4">
+      <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+      <div class="relative flex justify-center text-[10px] uppercase font-mono"><span class="bg-white px-2 text-slate-400">Ou inscription classique</span></div>
+    </div>
+
+    <form onsubmit="handleRegister(event)" class="space-y-3.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label for="regFirstName" class="block text-xs font-medium text-slate-700 mb-1">Prénom</label>
+          <input type="text" id="regFirstName" required placeholder="Sarah" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+        <div>
+          <label for="regLastName" class="block text-xs font-medium text-slate-700 mb-1">Nom</label>
+          <input type="text" id="regLastName" required placeholder="Benali" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+      </div>
+
+      <div>
+        <label for="regEmail" class="block text-xs font-medium text-slate-700 mb-1">Adresse e-mail</label>
+        <input type="email" id="regEmail" required placeholder="sarah.benali@example.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+      </div>
+
+      <div>
+        <label for="regPassword" class="block text-xs font-medium text-slate-700 mb-1">Mot de passe (min 6 caractères)</label>
+        <input type="password" id="regPassword" minlength="6" required placeholder="••••••••" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+      </div>
+
+      <div>
+        <label for="regRole" class="block text-xs font-medium text-slate-700 mb-1">Votre profil</label>
+        <select id="regRole" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+          <option value="ROLE_STUDENT">Étudiant / Développeur (Cours &amp; Sandbox)</option>
+          <option value="ROLE_RECRUITER">Équipe de recrutement / Entreprise</option>
+          <option value="ROLE_INSTRUCTOR">Formateur / Enseignant</option>
+        </select>
+      </div>
+
+      <div id="registerError" class="hidden p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg">
+        <span id="registerErrorText"></span>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm">
+        Créer mon compte
+      </button>
+    </form>
+
+    <div class="mt-4 text-center text-xs text-slate-500">
+      Déjà inscrit ? 
+      <button onclick="switchDialog('registerModal', 'loginModal')" class="text-blue-600 font-semibold hover:underline">Se connecter</button>
+    </div>
+  </dialog>
+
+  <!-- RESPONSIVE DIALOG: FORGOT PASSWORD -->
+  <dialog id="forgotPasswordModal" class="bg-white rounded-2xl p-5 sm:p-7 max-w-sm w-[92vw] sm:w-full border border-slate-200 shadow-xl m-auto text-left">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Mot de passe oublié</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Recevez un lien sécurisé de réinitialisation</p>
+      </div>
+      <button onclick="closeDialog('forgotPasswordModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <form onsubmit="handleForgotPassword(event)" class="mt-4 space-y-3.5">
+      <div>
+        <label for="forgotEmail" class="block text-xs font-medium text-slate-700 mb-1">Votre adresse e-mail</label>
+        <input type="email" id="forgotEmail" required placeholder="nom@exemple.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900">
+      </div>
+
+      <div id="forgotSuccessBox" class="hidden p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg leading-relaxed">
+        <p id="forgotSuccessMsg"></p>
+        <button type="button" onclick="openResetFormDirectly()" class="mt-2 text-blue-600 font-bold underline">Entrer le code de réinitialisation &rarr;</button>
+      </div>
+
+      <div id="forgotError" class="hidden p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg">
+        <span id="forgotErrorText"></span>
+      </div>
+
+      <button type="submit" id="forgotSubmitBtn" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm">
+        Envoyer le lien de réinitialisation
+      </button>
+    </form>
+
+    <div class="mt-4 text-center text-xs text-slate-500">
+      <button onclick="switchDialog('forgotPasswordModal', 'loginModal')" class="text-slate-600 hover:underline flex items-center justify-center space-x-1 mx-auto">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        <span>Retour à la connexion</span>
+      </button>
+    </div>
+  </dialog>
+
+  <!-- RESPONSIVE DIALOG: RESET PASSWORD WITH TOKEN -->
+  <dialog id="resetPasswordModal" class="bg-white rounded-2xl p-5 sm:p-7 max-w-sm w-[92vw] sm:w-full border border-slate-200 shadow-xl m-auto text-left">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Nouveau mot de passe</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Saisissez votre code et nouveau mot de passe</p>
+      </div>
+      <button onclick="closeDialog('resetPasswordModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <form onsubmit="handleResetPassword(event)" class="mt-4 space-y-3.5">
+      <div>
+        <label for="resetTokenInput" class="block text-xs font-medium text-slate-700 mb-1">Code / Token de réinitialisation</label>
+        <input type="text" id="resetTokenInput" required placeholder="Collez le token reçu..." class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-slate-900">
+      </div>
+
+      <div>
+        <label for="resetNewPassword" class="block text-xs font-medium text-slate-700 mb-1">Nouveau mot de passe (min 6 car.)</label>
+        <input type="password" id="resetNewPassword" minlength="6" required placeholder="••••••••" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+      </div>
+
+      <div id="resetError" class="hidden p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg">
+        <span id="resetErrorText"></span>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm">
+        Mettre à jour le mot de passe
+      </button>
+    </form>
+  </dialog>
+
+  <!-- RESPONSIVE DIALOG: REAL OAUTH CONSENT / CONFIRMATION POPUP (GOOGLE, GITHUB, MICROSOFT) -->
+  <dialog id="oauthConsentModal" class="bg-white rounded-2xl p-5 sm:p-7 max-w-md w-[92vw] sm:w-full border border-slate-200 shadow-2xl m-auto text-left">
+    <!-- Header with Provider Brand -->
+    <div class="flex items-start justify-between pb-4 border-b border-slate-100">
+      <div class="flex items-center space-x-3">
+        <div id="oauthHeaderLogo" class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-2">
+          <!-- Injected SVG -->
+        </div>
+        <div>
+          <h2 id="oauthHeaderTitle" class="text-base font-bold text-slate-900">Connexion avec Google</h2>
+          <p id="oauthHeaderSubtitle" class="text-xs text-slate-500">Autoriser l'accès à SkillQuest</p>
+        </div>
+      </div>
+      <button onclick="closeDialog('oauthConsentModal')" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Scopes / Permissions notice -->
+    <div class="my-4 p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-600 space-y-1.5">
+      <div class="font-semibold text-slate-800 flex items-center space-x-1.5">
+        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+        <span>Autorisations demandées :</span>
+      </div>
+      <ul class="list-disc list-inside text-[11px] text-slate-500 space-y-0.5">
+        <li>Consulter votre nom et adresse e-mail principale</li>
+        <li>Synchroniser votre avatar de profil</li>
+        <li>Redirection sécurisée vers votre tableau de bord</li>
+      </ul>
+    </div>
+
+    <!-- Interactive Account Selector & Input -->
+    <form onsubmit="confirmOAuthAccount(event)" class="space-y-4">
+      <input type="hidden" id="oauthCurrentProvider" value="GOOGLE">
+
+      <!-- Preset Account Card (Clickable) -->
+      <div class="border border-slate-200 hover:border-slate-300 rounded-xl p-3 bg-white flex items-center justify-between cursor-pointer transition-colors shadow-xs" onclick="usePresetAccount()">
+        <div class="flex items-center space-x-3">
+          <img id="oauthPresetAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=alex" alt="Avatar" class="w-9 h-9 rounded-full bg-slate-100 object-cover">
+          <div>
+            <div id="oauthPresetName" class="text-xs font-bold text-slate-900">Alex GoogleDev</div>
+            <div id="oauthPresetEmail" class="text-[11px] text-slate-500">alex.dev@gmail.com</div>
+          </div>
+        </div>
+        <span class="text-[11px] font-semibold text-blue-600 font-mono">Sélectionné</span>
+      </div>
+
+      <!-- Option to customize real account details -->
+      <details class="text-xs text-slate-600 group">
+        <summary class="cursor-pointer font-medium text-slate-700 hover:text-slate-900 flex items-center justify-between py-1">
+          <span>Utiliser un autre e-mail / compte réel</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform group-open:rotate-180"></i>
+        </summary>
+        <div class="pt-3 space-y-3">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-700 mb-1">Votre E-mail réel</label>
+            <input type="email" id="oauthCustomEmail" placeholder="votre.email@exemple.com" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-700 mb-1">Prénom</label>
+              <input type="text" id="oauthCustomFirst" placeholder="Prénom" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-700 mb-1">Nom</label>
+              <input type="text" id="oauthCustomLast" placeholder="Nom" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900">
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Role Selection for OAuth Account -->
+      <div class="pt-2">
+        <label class="block text-[11px] font-medium text-slate-700 mb-1.5">Type de profil sur SkillQuest</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center space-x-2 border border-slate-200 p-2.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="radio" name="oauthRole" value="ROLE_STUDENT" checked class="text-slate-900 focus:ring-0">
+            <div class="text-[11px]">
+              <div class="font-bold text-slate-900">Étudiant</div>
+              <div class="text-[10px] text-slate-500">Cours &amp; Sandbox</div>
+            </div>
+          </label>
+          <label class="flex items-center space-x-2 border border-slate-200 p-2.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="radio" name="oauthRole" value="ROLE_RECRUITER" class="text-slate-900 focus:ring-0">
+            <div class="text-[11px]">
+              <div class="font-bold text-slate-900">Entreprise</div>
+              <div class="text-[10px] text-slate-500">Recruteur IT</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-3 flex items-center justify-end space-x-2">
+        <button type="button" onclick="closeDialog('oauthConsentModal')" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition-colors">
+          Annuler
+        </button>
+        <button type="submit" id="oauthSubmitBtn" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5">
+          <i data-lucide="check" class="w-3.5 h-3.5"></i>
+          <span>Confirmer et Se Connecter</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 hidden bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 max-w-[90vw]">
+    <i data-lucide="info" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
+    <span id="toastMessage" class="truncate"></span>
+  </div>
+
+  <!-- CLIENT SCRIPT -->
+  <script>
+    lucide.createIcons();
+    const API_BASE_URL = 'http://localhost:8081/api/auth';
+    let lastGeneratedResetToken = '';
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const icon = document.getElementById('mobileMenuIcon');
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        icon.setAttribute('data-lucide', 'x');
+      } else {
+        menu.classList.add('hidden');
+        icon.setAttribute('data-lucide', 'menu');
+      }
+      lucide.createIcons();
+    }
+    function closeMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const icon = document.getElementById('mobileMenuIcon');
+      menu.classList.add('hidden');
+      icon.setAttribute('data-lucide', 'menu');
+      lucide.createIcons();
+    }
+
+    function openDialog(id) {
+      const dialog = document.getElementById(id);
+      if (dialog && typeof dialog.showModal === 'function') dialog.showModal();
+    }
+    function closeDialog(id) {
+      const dialog = document.getElementById(id);
+      if (dialog && typeof dialog.close === 'function') dialog.close();
+    }
+    function switchDialog(fromId, toId) {
+      closeDialog(fromId);
+      openDialog(toId);
+    }
+
+    document.querySelectorAll('dialog').forEach(dialog => {
+      dialog.addEventListener('click', (e) => {
+        const rect = dialog.getBoundingClientRect();
+        const inside = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+          && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+        if (!inside) dialog.close();
+      });
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
+
+    function updateNavUI() {
+      const userRaw = localStorage.getItem('skillquest_user');
+      const authHeader = document.getElementById('authHeaderActions');
+      const userProfile = document.getElementById('userProfileHeader');
+      const mobileAuth = document.getElementById('mobileAuthBlock');
+
+      if (userRaw) {
+        try {
+          const user = JSON.parse(userRaw);
+          authHeader.classList.add('hidden');
+          userProfile.classList.remove('hidden');
+          userProfile.classList.add('flex');
+          if (mobileAuth) mobileAuth.innerHTML = `<button onclick="logout()" class="w-full py-2 text-xs font-semibold text-red-600 bg-red-50 rounded-lg">Se déconnecter (${user.fullName || user.email})</button>`;
+          
+          document.getElementById('userNameNav').textContent = user.fullName || user.email;
+          document.getElementById('userAvatarNav').src = user.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email)}`;
+          
+          let role = 'STUDENT';
+          if (user.roles && user.roles.length > 0) {
+            const rawRole = Array.from(user.roles)[0].replace('ROLE_', '');
+            if (rawRole === 'STUDENT') role = 'STUDENT';
+            else if (rawRole === 'RECRUITER') role = 'RECRUITER';
+            else role = rawRole;
+          }
+          document.getElementById('userRoleBadgeNav').textContent = role;
+
+          const dashboardLink = document.getElementById('dashboardNavLink');
+          if (dashboardLink) {
+            dashboardLink.href = (role === 'RECRUITER') ? 'dashboard-recruiter.html' : 'dashboard-student.html';
+          }
+        } catch(e) {
+          localStorage.removeItem('skillquest_user');
+        }
+      } else {
+        authHeader.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+        userProfile.classList.remove('flex');
+        if (mobileAuth) {
+          mobileAuth.innerHTML = `
+            <button onclick="closeMobileMenu(); openDialog('loginModal')" class="w-full py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg">Se connecter</button>
+            <button onclick="closeMobileMenu(); openDialog('registerModal')" class="w-full py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg">Rejoindre la plateforme</button>
+          `;
+        }
+      }
+      lucide.createIcons();
+    }
+
+    // Gestion de la redirection intelligente
+    function performRedirect(data) {
+      const destination = data.redirectUrl || '/dashboard/student';
+      const role = (data.roles && data.roles[0]) ? data.roles[0] : 'ROLE_STUDENT';
+      const isRecruiter = destination.includes('recruiter') || role === 'ROLE_RECRUITER';
+      const targetPage = isRecruiter ? 'dashboard-recruiter.html' : 'dashboard-student.html';
+
+      showToast(`Connexion validée ! Redirection vers votre espace...`);
+      console.log(`[Redirection SkillQuest] Navigation vers : ${targetPage}`);
+
+      setTimeout(() => {
+        window.location.href = targetPage;
+      }, 700);
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('registerError');
+      const errText = document.getElementById('registerErrorText');
+      errBox.classList.add('hidden');
+
+      const payload = {
+        firstName: document.getElementById('regFirstName').value.trim(),
+        lastName: document.getElementById('regLastName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value,
+        role: document.getElementById('regRole').value,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Erreur lors de la création du compte");
+
+        localStorage.setItem('skillquest_token', data.accessToken);
+        localStorage.setItem('skillquest_refresh', data.refreshToken);
+        localStorage.setItem('skillquest_user', JSON.stringify(data));
+
+        closeDialog('registerModal');
+        updateNavUI();
+        performRedirect(data);
+      } catch (err) {
+        errText.textContent = err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('loginError');
+      const errText = document.getElementById('loginErrorText');
+      errBox.classList.add('hidden');
+
+      const payload = {
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Identifiants ou mot de passe incorrects");
+
+        localStorage.setItem('skillquest_token', data.accessToken);
+        localStorage.setItem('skillquest_refresh', data.refreshToken);
+        localStorage.setItem('skillquest_user', JSON.stringify(data));
+
+        closeDialog('loginModal');
+        updateNavUI();
+        performRedirect(data);
+      } catch (err) {
+        errText.textContent = err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    // Authentification Sociale OAuth Réelle (Google & GitHub)
+    function handleSocialAuth(provider) {
+      const prov = provider.toLowerCase();
+      showToast(`Redirection vers la page officielle de validation ${provider}...`);
+      
+      closeDialog('loginModal');
+      closeDialog('registerModal');
+
+      // Navigation directe vers l'autorisation officielle (non bloquée par Firefox)
+      window.location.href = `http://localhost:8081/api/auth/oauth/${prov}/authorize`;
+    }
+
+    function usePresetAccount() {
+      document.getElementById('oauthCustomEmail').value = '';
+      document.getElementById('oauthCustomFirst').value = '';
+      document.getElementById('oauthCustomLast').value = '';
+      showToast("Compte présélectionné activé");
+    }
+
+    async function confirmOAuthAccount(e) {
+      e.preventDefault();
+      const provider = document.getElementById('oauthCurrentProvider').value;
+      const config = OAUTH_PRESETS[provider] || OAUTH_PRESETS.GOOGLE;
+
+      const customEmail = document.getElementById('oauthCustomEmail').value.trim();
+      const customFirst = document.getElementById('oauthCustomFirst').value.trim();
+      const customLast = document.getElementById('oauthCustomLast').value.trim();
+
+      const selectedRole = document.querySelector('input[name="oauthRole"]:checked')?.value || "ROLE_STUDENT";
+
+      const finalEmail = customEmail || config.defaultEmail;
+      const finalFirst = customFirst || config.firstName;
+      const finalLast = customLast || config.lastName;
+      const finalAvatar = customEmail
+        ? `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalEmail)}`
+        : config.avatar;
+
+      const payload = {
+        provider: provider,
+        providerId: `${provider.toLowerCase()}_${Date.now().toString().slice(-7)}`,
+        email: finalEmail,
+        firstName: finalFirst,
+        lastName: finalLast,
+        avatarUrl: finalAvatar,
+        role: selectedRole
+      };
+
+      const btn = document.getElementById('oauthSubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<span>Validation avec ${config.brandName}...</span>`;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/social`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || `Échec de l'authentification avec ${provider}`);
+
+        localStorage.setItem('skillquest_token', data.accessToken);
+        localStorage.setItem('skillquest_refresh', data.refreshToken);
+        localStorage.setItem('skillquest_user', JSON.stringify(data));
+
+        closeDialog('oauthConsentModal');
+        updateNavUI();
+        performRedirect(data);
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Confirmer et Se Connecter</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // Mot de passe oublié
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('forgotError');
+      const errText = document.getElementById('forgotErrorText');
+      const successBox = document.getElementById('forgotSuccessBox');
+      const successMsg = document.getElementById('forgotSuccessMsg');
+      errBox.classList.add('hidden');
+      successBox.classList.add('hidden');
+
+      const email = document.getElementById('forgotEmail').value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Erreur de traitement");
+
+        lastGeneratedResetToken = data.resetToken || 'TOKEN_SIMULE_12345';
+        successMsg.innerHTML = `<strong>Lien envoyé :</strong> Un token sécurisé a été généré pour <em>${email}</em>.<br><span class="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-emerald-300">Token : ${lastGeneratedResetToken}</span>`;
+        successBox.classList.remove('hidden');
+      } catch (err) {
+        errText.textContent = err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function openResetFormDirectly() {
+      switchDialog('forgotPasswordModal', 'resetPasswordModal');
+      document.getElementById('resetTokenInput').value = lastGeneratedResetToken;
+    }
+
+    // Réinitialisation du mot de passe
+    async function handleResetPassword(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('resetError');
+      const errText = document.getElementById('resetErrorText');
+      errBox.classList.add('hidden');
+
+      const payload = {
+        token: document.getElementById('resetTokenInput').value.trim(),
+        newPassword: document.getElementById('resetNewPassword').value,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Impossible de réinitialiser le mot de passe");
+
+        closeDialog('resetPasswordModal');
+        showToast(data.message || "Mot de passe modifié avec succès !");
+        openDialog('loginModal');
+      } catch (err) {
+        errText.textContent = err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('skillquest_token');
+      localStorage.removeItem('skillquest_refresh');
+      localStorage.removeItem('skillquest_user');
+      updateNavUI();
+      showToast('Session fermée.');
+    }
+
+    function runSandboxSimulation() {
+      const banner = document.getElementById('sandboxEventBanner');
+      const statusText = document.getElementById('sandboxStatusText');
+      const btn = document.getElementById('runCodeBtn');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span>Évaluation en cours...</span>`;
+
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Lancer l'évaluation</span>`;
+        banner.classList.remove('hidden');
+        statusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-emerald-600 font-bold">Validé : 3/3 tests passés (38 ms)</span>`;
+        lucide.createIcons();
+        showToast("Évaluation validée avec succès");
+      }, 700);
+    }
+
+    function redirectToOfficialProvider() {
+      const provider = document.getElementById('oauthCurrentProvider').value.toLowerCase();
+      window.location.href = `${API_BASE_URL}/oauth/${provider}/authorize`;
+    }
+
+    function checkOAuthUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('oauth_success') === 'true') {
+        const token = params.get('token');
+        const refresh = params.get('refresh');
+        const userStr = params.get('user');
+
+        if (token && userStr) {
+          // Si nous sommes dans une fenêtre popup ouverte par la page principale
+          if (window.opener && window.opener !== window) {
+            try {
+              window.opener.postMessage({
+                type: 'SKILLQUEST_OAUTH_SUCCESS',
+                token: token,
+                refresh: refresh,
+                user: userStr
+              }, '*');
+              window.close();
+              return;
+            } catch (e) {
+              console.warn("Communication popup impossible", e);
+            }
+          }
+
+          localStorage.setItem('skillquest_token', token);
+          if (refresh) localStorage.setItem('skillquest_refresh', refresh);
+          localStorage.setItem('skillquest_user', userStr);
+
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          try {
+            const user = JSON.parse(userStr);
+            showToast(`Connexion réelle validée : Bienvenue ${user.fullName || user.email} !`);
+            updateNavUI();
+            performRedirect(user);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SKILLQUEST_OAUTH_SUCCESS') {
+        const { token, refresh, user } = event.data;
+        localStorage.setItem('skillquest_token', token);
+        if (refresh) localStorage.setItem('skillquest_refresh', refresh);
+        localStorage.setItem('skillquest_user', user);
+
+        try {
+          const parsedUser = JSON.parse(user);
+          showToast(`Connexion réelle validée : Bienvenue ${parsedUser.fullName || parsedUser.email} !`);
+          updateNavUI();
+          performRedirect(parsedUser);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+
+    updateNavUI();
+    checkOAuthUrlParams();
+  </script>
+</body>
+</html>
