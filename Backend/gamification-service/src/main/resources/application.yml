@@ -1,0 +1,53 @@
+server:
+  port: ${PORT:8084}
+
+spring:
+  application:
+    name: gamification-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/skillquest_gamification}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+  rabbitmq:
+    # Accepte directement une URI amqp://user:pass@host:port
+    addresses: ${RABBITMQ_URI:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2.0
+
+gamification:
+  xp:
+    code-solution-passed: 50
+  course-service:
+    base-url: ${COURSE_SERVICE_URL:http://localhost:8082}
+    connect-timeout: 2s
+    read-timeout: 5s
+  certificate:
+    # Clé HMAC-SHA256 qui signe chaque certificat : à changer en production !
+    secret: ${CERTIFICATE_SECRET:change-me-in-production}
+    verification-base-url: ${PUBLIC_BASE_URL:http://localhost:8084}
+  messaging:
+    exchange: skillquest.events
+    dead-letter-exchange: skillquest.events.dlx
+    dead-letter-queue: gamification.dead-letter.queue
+    badge-unlocked-routing-key: gamification.badge.unlocked
+    # Les routing keys ci-dessous sont à aligner avec celles de code-execution-service et course-service
+    code-solution-queue: gamification.code-solution-passed.queue
+    code-solution-routing-key: code.solution.passed
+    course-completed-queue: gamification.course-completed.queue
+    course-completed-routing-key: course.completed
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

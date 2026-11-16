@@ -1,0 +1,14 @@
+# Profil de développement sans RabbitMQ : lancer avec  --spring.profiles.active=dev
+# (l'API REST fonctionne ; les listeners RabbitMQ sont arrêtés et la publication de
+#  BadgeUnlockedEvent est simplement journalisée comme échec).
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+    connection-timeout: 1s
+
+management:
+  health:
+    rabbit:
+      enabled: false
