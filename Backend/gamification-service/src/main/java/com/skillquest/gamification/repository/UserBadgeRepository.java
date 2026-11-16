@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.skillquest.gamification.domain.UserBadge;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,4 +19,12 @@ public interface UserBadgeRepository extends JpaRepository<UserBadge, UUID> {
     List<Long> findBadgeIdsByUserId(@Param("userId") UUID userId);
 
     boolean existsByUserIdAndBadgeId(UUID userId, Long badgeId);
+
+    /** Nombre de badges par joueur : lignes {userId, count}. */
+    @Query("select ub.userId, count(ub) from UserBadge ub group by ub.userId")
+    List<Object[]> countBadgesPerUser();
+
+    @Modifying
+    @Query("delete from UserBadge ub where ub.badge.id = :badgeId")
+    void deleteByBadgeId(@Param("badgeId") Long badgeId);
 }

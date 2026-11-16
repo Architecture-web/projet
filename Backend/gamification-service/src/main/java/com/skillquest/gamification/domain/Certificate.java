@@ -44,6 +44,10 @@ public class Certificate {
     @Column(name = "issued_at", nullable = false)
     private Instant issuedAt;
 
+    /** Renseigné quand un administrateur révoque le certificat (il n'est alors plus valide). */
+    @Column(name = "revoked_at")
+    private Instant revokedAt;
+
     protected Certificate() {
     }
 
@@ -85,5 +89,15 @@ public class Certificate {
 
     public Instant getIssuedAt() {
         return issuedAt;
+    }
+
+    public Instant getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void revoke() {
+        if (revokedAt == null) {
+            revokedAt = Instant.now();
+        }
     }
 }

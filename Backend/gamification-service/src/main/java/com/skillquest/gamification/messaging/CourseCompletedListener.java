@@ -25,9 +25,7 @@ public class CourseCompletedListener {
         if (event == null || event.userId() == null || event.courseId() == null || event.courseId().isBlank()) {
             throw new AmqpRejectAndDontRequeueException("CourseCompletedEvent without userId/courseId");
         }
-        var certificate = certificateService.issueCertificate(
-                event.userId(), event.courseId(), event.studentFullName());
-        log.info("CourseCompletedEvent user={} course={} -> certificate {}",
-                event.userId(), event.courseId(), certificate.getId());
+        certificateService.onCourseCompleted(event.userId(), event.courseId(), event.studentFullName());
+        log.info("CourseCompletedEvent user={} course={} processed", event.userId(), event.courseId());
     }
 }

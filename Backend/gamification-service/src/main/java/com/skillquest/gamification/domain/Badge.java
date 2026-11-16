@@ -42,6 +42,14 @@ public class Badge {
         this.requiredXP = requiredXP;
     }
 
+    public void update(String codeName, String title, String description, String iconUrl, Integer requiredXP) {
+        this.codeName = codeName;
+        this.title = title;
+        this.description = description;
+        this.iconUrl = iconUrl;
+        this.requiredXP = requiredXP;
+    }
+
     public Long getId() {
         return id;
     }

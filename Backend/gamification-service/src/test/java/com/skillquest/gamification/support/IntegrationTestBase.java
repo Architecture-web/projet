@@ -2,6 +2,9 @@ package com.skillquest.gamification.support;
 
 import com.skillquest.gamification.client.CourseClient;
 import com.skillquest.gamification.repository.CertificateRepository;
+import com.skillquest.gamification.repository.CourseCompletionRepository;
+import com.skillquest.gamification.repository.QuizAttemptRepository;
+import com.skillquest.gamification.repository.QuizRepository;
 import com.skillquest.gamification.repository.ProcessedEventRepository;
 import com.skillquest.gamification.repository.UserBadgeRepository;
 import com.skillquest.gamification.repository.UserProfileRepository;
@@ -32,9 +35,18 @@ public abstract class IntegrationTestBase {
     private ProcessedEventRepository processedEventRepository;
     @Autowired
     private UserProfileRepository userProfileRepository;
+    @Autowired
+    private QuizAttemptRepository quizAttemptRepository;
+    @Autowired
+    private QuizRepository quizRepository;
+    @Autowired
+    private CourseCompletionRepository courseCompletionRepository;
 
     @BeforeEach
     void cleanDatabase() {
+        quizAttemptRepository.deleteAll();
+        quizRepository.deleteAll();
+        courseCompletionRepository.deleteAll();
         userBadgeRepository.deleteAll();
         certificateRepository.deleteAll();
         processedEventRepository.deleteAll();

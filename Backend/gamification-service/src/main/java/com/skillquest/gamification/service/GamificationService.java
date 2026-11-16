@@ -16,6 +16,7 @@ import com.skillquest.gamification.dto.ApiDtos.BadgeResponse;
 import com.skillquest.gamification.dto.ApiDtos.LeaderboardEntry;
 import com.skillquest.gamification.dto.ApiDtos.ProfileResponse;
 import com.skillquest.gamification.dto.ApiDtos.UserBadgeResponse;
+import com.skillquest.gamification.exception.BadRequestException;
 import com.skillquest.gamification.exception.ConflictException;
 import com.skillquest.gamification.exception.ResourceNotFoundException;
 import com.skillquest.gamification.messaging.BadgeUnlockedEvent;
@@ -105,6 +106,24 @@ public class GamificationService {
         }
         addXP(userId, amount);
         return true;
+    }
+
+    /** Ajustement manuel de l'XP par un administrateur (delta positif ou négatif, jamais sous 0). */
+    @Transactional
+    public ProfileResponse adjustXP(UUID userId, int delta) {
+        if (delta == 0) {
+            throw new BadRequestException("amount must not be 0");
+        }
+        UserProfileGamification profile = profileRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("No gamification profile for user " + userId));
+        if (delta > 0) {
+            addXP(userId, delta);
+        } else {
+            profile.adjustXP(delta);
+            profile.setGlobalRank((int) profileRepository.countWithMoreXPThan(profile.getTotalXP()) + 1);
+        }
+        log.info("admin adjusted XP of user={} by {} -> total={}", userId, delta, profile.getTotalXP());
+        return toResponse(profile);
     }
 
     /** Attribue un badge « sur événement » (ex. COURSE_GRADUATE). Sans effet s'il est déjà possédé. */

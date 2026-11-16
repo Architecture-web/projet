@@ -50,6 +50,13 @@ public class UserProfileGamification {
         return currentLevel > levelBefore;
     }
 
+    /** Ajustement manuel par un administrateur (positif ou négatif) ; l'XP ne descend jamais sous 0. */
+    public void adjustXP(int delta) {
+        totalXP = Math.max(0, totalXP + delta);
+        updatedAt = Instant.now();
+        evaluateLevelProgression();
+    }
+
     public void evaluateLevelProgression() {
         currentLevel = LevelCalculator.levelFor(totalXP);
     }
