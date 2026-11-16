@@ -155,6 +155,8 @@ COURSE_SERVICE_URL=http://localhost:8082
 RABBITMQ_URI=amqp://guest:guest@localhost:5672
 CERTIFICATE_SECRET=change-me-in-production
 PUBLIC_BASE_URL=http://localhost:8084
+JWT_SECRET=skillquest_super_secret_jwt_key_2026_at_least_256_bits_long_and_robust_security
+CORS_ALLOWED_ORIGINS=http://localhost:8081,http://localhost:5500
 ```
 
 > Différence avec la première version du README : la base se configure avec `DB_URL` (URL **JDBC**), `DB_USERNAME` et `DB_PASSWORD`, car le driver JDBC n'accepte pas le format `postgresql://user:pass@host`.
@@ -203,3 +205,55 @@ curl localhost:8084/api/certifications/2fa4b1c6-d374-450c-86ea-41f6f775fab6
    - routing key `code.solution.passed` : `{"eventId":"<uuid>","userId":"<uuid>","challengeId":"c1"}` → +50 XP (4 messages = 200 XP, niveau 2, badges `FIRST_STEPS` puis `CODE_APPRENTICE`) ; renvoyer le même `eventId` est ignoré ;
    - routing key `course.completed` : `{"userId":"<uuid>","courseId":"1","studentFullName":"Aziz Jemli"}` → certificat + badge `COURSE_GRADUATE`.
 4. Consulter `GET /api/certifications/<userId>`, puis `/api/certifications/<certificateId>/verify?hash=…` et `/api/certifications/<certificateId>/pdf`. Un exemple de PDF est fourni : `demo\certificat-demo.pdf`.
+
+---
+
+## 🎮 7. Mini-jeu Quiz & règle des 80 % pour le certificat
+
+### Règle du certificat
+Un certificat est délivré quand **les deux conditions sont réunies** :
+1. l'étudiant a **terminé le cours** (événement `CourseCompletedEvent`) ;
+2. la **moyenne de ses meilleurs scores** aux quiz de ce cours est **≥ 80 %** (seuil configurable : `gamification.certificate.min-average-score`).
+
+Un quiz jamais joué compte pour 0 %. Un cours **sans quiz** n'impose aucune condition de score. Si l'étudiant réussit ses quiz *après* la fin du cours, le certificat est émis automatiquement à la tentative qui fait passer la moyenne à 80 %. Un certificat **révoqué** par un administrateur n'est jamais ré-émis.
+
+### XP des quiz
+Chaque quiz a une récompense maximale (`xpReward`). L'XP gagnée est `xpReward × (nouveau meilleur score − ancien meilleur score) / 100` : seule la **progression** rapporte de l'XP, rejouer un quiz déjà réussi n'en donne pas (pas de farming). Les badges de palier se débloquent comme d'habitude.
+
+### API étudiant (jeton JWT obligatoire)
+| Méthode | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/quizzes?courseId=` | Quiz disponibles + meilleur score de l'étudiant |
+| `GET` | `/api/quizzes/{id}` | Questions et réponses possibles (**sans** les bonnes réponses) |
+| `POST` | `/api/quizzes/{id}/attempts` | Soumet `{"answers":[{"questionId","optionId"}]}` → score, XP gagnée, correction, progression vers le certificat |
+| `GET` | `/api/quizzes/progress/{courseId}` | Cours terminé ? moyenne des quiz ? certificat obtenu ? |
+
+L'étudiant est identifié par le champ `sub` de son JWT : il ne peut pas jouer au nom d'un autre.
+
+## 🛡️ 8. Dashboard administrateur (`ROLE_ADMIN`)
+
+Page : `Frontend/dashboard-admin.html` (4 onglets : Quiz & questions, Badges, Certificats, Joueurs & XP).
+
+| Méthode | Route | Description |
+| :--- | :--- | :--- |
+| `GET/POST` | `/api/admin/quizzes` | Lister / créer un quiz (questions et réponses incluses) |
+| `GET/PUT/DELETE` | `/api/admin/quizzes/{id}` | Lire / modifier / supprimer (supprime aussi les tentatives) |
+| `POST` | `/api/admin/badges` | Créer un badge (`codeName` unique, majuscules/chiffres/`_`) |
+| `PUT/DELETE` | `/api/admin/badges/{id}` | Modifier / supprimer (retire aussi le badge aux joueurs). Le badge système `COURSE_GRADUATE` ne peut être ni supprimé ni renommé |
+| `GET` | `/api/admin/certificates` | Tous les certificats (les 200 plus récents) |
+| `POST` | `/api/admin/certificates/{id}/revoke` | Révoquer : invalide à la vérification publique, retiré du profil certifié, jamais ré-émis |
+| `GET` | `/api/admin/players?limit=` | Joueurs : XP, niveau, rang, nombre de badges |
+| `POST` | `/api/admin/players/{userId}/xp` | `{"amount": -50, "reason": "..."}` : ajuste l'XP (jamais sous 0) |
+
+Chaque question doit avoir **exactement une bonne réponse** (2 à 6 réponses par question).
+
+### Sécurité
+- Les **JWT sont émis par `auth-service`** (HS512). Ce service les valide avec le même secret : variable `JWT_SECRET` (valeur par défaut = celle de `auth-service`, **à changer en production**). Le rôle est lu dans le champ `roles`, l'identifiant dans `sub`.
+- `/api/admin/**` → `ROLE_ADMIN` uniquement (401 sans jeton, 403 pour un autre rôle).
+- `/api/quizzes/**` → tout utilisateur connecté.
+- Tout le reste (profils, classement, badges, vérification de certificat…) reste **public**, car il est appelé par les autres services sans jeton.
+- Le CORS n'autorise que les origines de `gamification.cors.allowed-origins` (`CORS_ALLOWED_ORIGINS`).
+
+> ⚠️ **À signaler à l'équipe auth-service** : son endpoint `POST /api/auth/register` accepte n'importe quel rôle demandé par le client, y compris `ROLE_ADMIN`. Le formulaire ne le propose pas, mais n'importe qui peut s'inscrire administrateur en appelant l'API directement. À corriger avant toute mise en ligne (ignorer le rôle `ROLE_ADMIN` à l'inscription).
+
+Comptes de démonstration (développement uniquement) : voir `demo/demo-accounts.md`.
