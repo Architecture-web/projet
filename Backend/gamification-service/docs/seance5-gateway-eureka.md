@@ -47,7 +47,8 @@ curl -H "Authorization: Bearer $TOKEN" $G/api/admin/quizzes            # étudia
 
 ## 4. Swagger / OpenAPI
 - Interface : `http://localhost:8084/swagger-ui.html` — spécification JSON : `http://localhost:8084/v3/api-docs`.
-- 4 groupes : **Gamification**, **Certifications**, **Quiz (etudiant)**, **Administration**.
+- Seul le groupe **Gamification** est affiche (`springdoc.paths-to-match: /api/gamification/**`). Les routes certifications, quiz et admin
+  restent actives mais ne sont pas listees ; retirer la propriete pour les documenter aussi.
 - Chaque route documente ses codes de réponse (200/201/204, 400, 401, 403, 404, 409).
 - Bouton **Authorize** : coller le `accessToken` obtenu avec `POST /api/auth/login` (sans le mot « Bearer »)
   pour tester `/api/quizzes/**` (utilisateur connecté) et `/api/admin/**` (`ROLE_ADMIN`).
