@@ -67,10 +67,10 @@ eureka:
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
 
-# Swagger UI : seul le groupe Gamification (profils, classement, badges) est documente.
-# Les autres routes (certifications, quiz, admin) fonctionnent toujours ; retirer cette ligne pour les afficher.
+# Swagger UI : groupes Gamification, Certifications et Quiz. Le groupe Administration (/api/admin/**) est masque
+# de la documentation mais reste actif et reserve a ROLE_ADMIN ; retirer cette ligne pour tout afficher.
 springdoc:
-  paths-to-match: /api/gamification/**
+  paths-to-match: /api/gamification/**,/api/certifications/**,/api/quizzes/**
 
 management:
   endpoints:
