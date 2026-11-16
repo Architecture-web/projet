@@ -1,5 +1,11 @@
 package com.skillquest.gamification.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +29,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Le mini-jeu de quiz : l'etudiant est identifie par son jeton JWT (champ {@code sub}). */
+@Tag(name = "Quiz (etudiant)", description = "Mini-jeu quiz : necessite un JWT (bouton Authorize)")
+@SecurityRequirement(name = "bearerAuth")
+@ApiResponses({@ApiResponse(responseCode = "401", description = "Jeton absent, invalide ou expire")})
 @RestController
 @RequestMapping("/api/quizzes")
 public class QuizController {
@@ -43,6 +52,8 @@ public class QuizController {
         return quizService.get(id);
     }
 
+    @Operation(summary = "Soumet les reponses : score, XP gagnee (progression uniquement), correction et progression vers le certificat")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Tentative corrigee"), @ApiResponse(responseCode = "400", description = "Question etrangere au quiz"), @ApiResponse(responseCode = "404", description = "Quiz inconnu")})
     @PostMapping("/{id}/attempts")
     public AttemptResult submit(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
                                 @Valid @RequestBody AttemptRequest request) {
@@ -50,6 +61,7 @@ public class QuizController {
     }
 
     /** Ou en suis-je pour obtenir le certificat de ce cours ? */
+    @Operation(summary = "Progression vers le certificat : cours termine ? moyenne des quiz >= 80 % ?")
     @GetMapping("/progress/{courseId}")
     public CertificationProgress progress(@AuthenticationPrincipal Jwt jwt, @PathVariable String courseId) {
         return quizService.progress(UserIds.from(jwt), courseId);

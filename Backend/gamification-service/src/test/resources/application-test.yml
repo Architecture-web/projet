@@ -11,6 +11,10 @@ spring:
       simple:
         auto-startup: false
 
+eureka:
+  client:
+    enabled: false
+
 gamification:
   certificate:
     secret: test-secret

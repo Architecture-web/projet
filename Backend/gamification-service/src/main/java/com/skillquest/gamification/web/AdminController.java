@@ -1,5 +1,11 @@
 package com.skillquest.gamification.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +34,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** API du dashboard administrateur. Reservee au role ROLE_ADMIN (voir SecurityConfig). */
+@Tag(name = "Administration", description = "CRUD quiz et badges, certificats, joueurs et XP : ROLE_ADMIN uniquement")
+@SecurityRequirement(name = "bearerAuth")
+@ApiResponses({@ApiResponse(responseCode = "401", description = "Jeton absent, invalide ou expire"), @ApiResponse(responseCode = "403", description = "Role ROLE_ADMIN requis")})
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -50,6 +59,8 @@ public class AdminController {
         return adminService.getQuiz(id);
     }
 
+    @Operation(summary = "Cree un quiz : chaque question doit avoir exactement une bonne reponse")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Quiz cree"), @ApiResponse(responseCode = "400", description = "Donnees invalides")})
     @PostMapping("/quizzes")
     @ResponseStatus(HttpStatus.CREATED)
     public AdminQuizView createQuiz(@Valid @RequestBody QuizUpsert request) {
@@ -80,6 +91,8 @@ public class AdminController {
         return adminService.updateBadge(id, request);
     }
 
+    @Operation(summary = "Supprime un badge (le retire aussi aux joueurs) ; COURSE_GRADUATE est protege")
+    @ApiResponses({@ApiResponse(responseCode = "204", description = "Badge supprime"), @ApiResponse(responseCode = "400", description = "Badge systeme"), @ApiResponse(responseCode = "404", description = "Badge inconnu")})
     @DeleteMapping("/badges/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteBadge(@PathVariable Long id) {
@@ -93,6 +106,7 @@ public class AdminController {
         return adminService.listCertificates();
     }
 
+    @Operation(summary = "Revoque un certificat : invalide a la verification publique, jamais re-emis")
     @PostMapping("/certificates/{id}/revoke")
     public AdminCertificateView revokeCertificate(@PathVariable UUID id) {
         return adminService.revokeCertificate(id);
@@ -105,6 +119,8 @@ public class AdminController {
         return adminService.listPlayers(limit);
     }
 
+    @Operation(summary = "Ajuste l'XP d'un joueur (positif ou negatif, jamais sous 0)")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Profil mis a jour"), @ApiResponse(responseCode = "400", description = "amount nul"), @ApiResponse(responseCode = "404", description = "Joueur inconnu")})
     @PostMapping("/players/{userId}/xp")
     public ProfileResponse adjustXP(@PathVariable UUID userId, @Valid @RequestBody XpAdjustRequest request) {
         return adminService.adjustXP(userId, request.amount());

@@ -8,6 +8,10 @@ spring:
         auto-startup: false
     connection-timeout: 1s
 
+eureka:
+  client:
+    enabled: false
+
 management:
   health:
     rabbit:

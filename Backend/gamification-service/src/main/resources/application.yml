@@ -54,6 +54,19 @@ gamification:
     course-completed-queue: gamification.course-completed.queue
     course-completed-routing-key: course.completed
 
+# Seance 5 : decouverte de services. Le service s'enregistre sous le nom GAMIFICATION-SERVICE ;
+# la gateway le joint via lb://gamification-service. Mettre EUREKA_ENABLED=false pour le couper.
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
 management:
   endpoints:
     web:
