@@ -369,31 +369,39 @@
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Protection de session : Vérifie la présence du token
-    const token = localStorage.getItem('skillquest_token');
-    const userDataStr = localStorage.getItem('skillquest_user');
-
-    if (!token || !userDataStr) {
-      alert("Session expirée ou utilisateur non connecté. Redirection vers la page d'accueil...");
-      window.location.href = "index.html";
+    // Protection de session : Vérifie la présence du token (y compris retour navigateur / bfcache)
+    function ensureAuthenticated() {
+      const currentToken = localStorage.getItem('skillquest_token');
+      const currentUser = localStorage.getItem('skillquest_user');
+      if (!currentToken || !currentUser) {
+        window.location.replace("index.html");
+        return false;
+      }
+      return true;
     }
 
-    try {
-      const user = JSON.parse(userDataStr);
-      document.getElementById('studentName').textContent = user.fullName || user.email || 'Étudiant';
-      document.getElementById('welcomeName').textContent = user.fullName || user.email || 'Étudiant';
-      if (user.avatarUrl) {
-        document.getElementById('studentAvatar').src = user.avatarUrl;
+    window.addEventListener('pageshow', () => {
+      ensureAuthenticated();
+    });
+
+    if (ensureAuthenticated()) {
+      try {
+        const user = JSON.parse(localStorage.getItem('skillquest_user'));
+        document.getElementById('studentName').textContent = user.fullName || user.email || 'Étudiant';
+        document.getElementById('welcomeName').textContent = user.fullName || user.email || 'Étudiant';
+        if (user.avatarUrl) {
+          document.getElementById('studentAvatar').src = user.avatarUrl;
+        }
+      } catch (e) {
+        console.error("Erreur de parsing de session", e);
       }
-    } catch (e) {
-      console.error("Erreur de parsing de session", e);
     }
 
     function logout() {
       localStorage.removeItem('skillquest_token');
       localStorage.removeItem('skillquest_refresh');
       localStorage.removeItem('skillquest_user');
-      window.location.href = "index.html";
+      window.location.replace("index.html");
     }
 
     lucide.createIcons();

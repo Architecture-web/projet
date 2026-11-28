@@ -20,7 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -40,6 +45,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final GamificationClient gamificationClient;
     private final EventBusManager eventBusManager;
+    private final EmailService emailService;
     private final long refreshTokenExpirationMs;
 
     public AuthService(
@@ -51,6 +57,7 @@ public class AuthService {
         JwtProvider jwtProvider,
         GamificationClient gamificationClient,
         EventBusManager eventBusManager,
+        EmailService emailService,
         @Value("${app.jwt.refresh-expiration-ms:604800000}") long refreshTokenExpirationMs
     ) {
         this.userRepository = userRepository;
@@ -61,6 +68,7 @@ public class AuthService {
         this.jwtProvider = jwtProvider;
         this.gamificationClient = gamificationClient;
         this.eventBusManager = eventBusManager;
+        this.emailService = emailService;
         this.refreshTokenExpirationMs = refreshTokenExpirationMs;
     }
 
@@ -205,21 +213,22 @@ public class AuthService {
                 "Ce compte utilise la connexion " + user.getProvider() + ". Aucune réinitialisation de mot de passe nécessaire.");
         }
 
-        // Nettoie les anciens tokens
-        passwordResetTokenRepository.deleteByUser(user);
-
-        String token = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
-        Instant expiryDate = Instant.now().plusSeconds(3600); // Valide 1 heure
-        PasswordResetToken resetToken = new PasswordResetToken(token, user, expiryDate);
+        String rawToken = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+        String hashedToken = hashToken(rawToken);
+        Instant expiryDate = Instant.now().plusSeconds(900); // Valide 15 minutes
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByUser(user)
+            .orElseGet(() -> new PasswordResetToken(hashedToken, user, expiryDate));
+        resetToken.setToken(hashedToken);
+        resetToken.setExpiryDate(expiryDate);
+        resetToken.setIsUsed(false);
         passwordResetTokenRepository.save(resetToken);
 
-        log.info("[Password Reset] Token généré pour {} : token={}", user.getEmail(), token);
+        emailService.sendPasswordResetEmail(user.getEmail(), rawToken);
+        log.info("[Password Reset] E-mail de réinitialisation envoyé à {}", user.getEmail());
 
         return Map.of(
             "success", true,
-            "message", "Le code de réinitialisation a été généré.",
-            "resetToken", token, // Renvoyé pour faciliter les tests dans l'UI
-            "expiresInSeconds", 3600
+            "message", "Si un compte est associé à cette adresse, un e-mail de réinitialisation a été envoyé."
         );
     }
 
@@ -228,7 +237,8 @@ public class AuthService {
      */
     @Transactional
     public Map<String, Object> resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+        String hashedToken = hashToken(request.getToken().trim());
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(hashedToken)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token de réinitialisation invalide ou introuvable."));
 
         if (resetToken.isExpired() || Boolean.TRUE.equals(resetToken.getIsUsed())) {
@@ -247,6 +257,16 @@ public class AuthService {
             "success", true,
             "message", "Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter."
         );
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponible", e);
+        }
     }
 
     @Transactional

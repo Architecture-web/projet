@@ -1061,16 +1061,61 @@
       }
     }
 
-    // Authentification Sociale OAuth Réelle (Google & GitHub)
-    function handleSocialAuth(provider) {
+    const OAUTH_PRESETS = {
+      GOOGLE: {
+        brandName: 'Google',
+        title: 'Connexion avec Google',
+        defaultEmail: 'alex.dev@gmail.com',
+        firstName: 'Alex',
+        lastName: 'GoogleDev',
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=alex',
+        logoHtml: '<svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"/><path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"/></svg>'
+      },
+      GITHUB: {
+        brandName: 'GitHub',
+        title: 'Connexion avec GitHub',
+        defaultEmail: 'octocat.dev@github.com',
+        firstName: 'Octo',
+        lastName: 'GitHubDev',
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=github',
+        logoHtml: '<svg class="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" clip-rule="evenodd"/></svg>'
+      }
+    };
+
+    function openOAuthConsentModal(providerKey) {
+      const config = OAUTH_PRESETS[providerKey] || OAUTH_PRESETS.GOOGLE;
+      document.getElementById('oauthCurrentProvider').value = providerKey;
+      document.getElementById('oauthHeaderTitle').textContent = config.title;
+      document.getElementById('oauthHeaderLogo').innerHTML = config.logoHtml;
+      document.getElementById('oauthPresetAvatar').src = config.avatar;
+      document.getElementById('oauthPresetName').textContent = `${config.firstName} ${config.lastName}`;
+      document.getElementById('oauthPresetEmail').textContent = config.defaultEmail;
+      openDialog('oauthConsentModal');
+    }
+
+    // Authentification Sociale OAuth (réelle si configurée, sinon modal local)
+    async function handleSocialAuth(provider) {
+      const provKey = provider.toUpperCase();
       const prov = provider.toLowerCase();
-      showToast(`Redirection vers la page officielle de validation ${provider}...`);
-      
+
       closeDialog('loginModal');
       closeDialog('registerModal');
 
-      // Navigation directe vers l'autorisation officielle (non bloquée par Firefox)
-      window.location.href = `http://localhost:8081/api/auth/oauth/${prov}/authorize`;
+      try {
+        const res = await fetch(`${API_BASE_URL}/oauth/status`);
+        if (res.ok) {
+          const status = await res.json();
+          if (status[prov] === true) {
+            showToast(`Redirection vers la page officielle de validation ${provider}...`);
+            window.location.href = `${API_BASE_URL}/oauth/${prov}/authorize`;
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Impossible de vérifier le statut OAuth, bascule sur le modal local.', err);
+      }
+
+      openOAuthConsentModal(provKey);
     }
 
     function usePresetAccount() {
@@ -1160,8 +1205,12 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Erreur de traitement");
 
-        lastGeneratedResetToken = data.resetToken || 'TOKEN_SIMULE_12345';
-        successMsg.innerHTML = `<strong>Lien envoyé :</strong> Un token sécurisé a été généré pour <em>${email}</em>.<br><span class="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-emerald-300">Token : ${lastGeneratedResetToken}</span>`;
+        lastGeneratedResetToken = data.resetToken || '';
+        if (lastGeneratedResetToken) {
+          successMsg.innerHTML = `<strong>Lien envoyé :</strong> Un token sécurisé a été généré pour <em>${email}</em>.<br><span class="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-emerald-300 break-all inline-block max-w-full mt-1">Token : ${lastGeneratedResetToken}</span>`;
+        } else {
+          successMsg.textContent = data.message || 'Si un compte est associé à cette adresse, un lien de réinitialisation a été envoyé.';
+        }
         successBox.classList.remove('hidden');
       } catch (err) {
         errText.textContent = err.message;
@@ -1238,6 +1287,13 @@
 
     function checkOAuthUrlParams() {
       const params = new URLSearchParams(window.location.search);
+      const resetToken = params.get('reset_token');
+      if (resetToken) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        document.getElementById('resetTokenInput').value = resetToken;
+        openDialog('resetPasswordModal');
+        return;
+      }
       if (params.get('oauth_success') === 'true') {
         const token = params.get('token');
         const refresh = params.get('refresh');
@@ -1294,6 +1350,10 @@
           console.error(e);
         }
       }
+    });
+
+    window.addEventListener('pageshow', () => {
+      updateNavUI();
     });
 
     updateNavUI();

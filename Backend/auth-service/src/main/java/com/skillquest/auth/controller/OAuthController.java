@@ -37,9 +37,16 @@ public class OAuthController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Boolean>> getOAuthStatus() {
         return ResponseEntity.ok(Map.of(
-            "github", githubClientId != null && !githubClientId.isBlank() && !githubClientId.contains("VOTRE_"),
-            "google", googleClientId != null && !googleClientId.isBlank() && !googleClientId.contains("VOTRE_")
+            "github", isConfigured(githubClientId),
+            "google", isConfigured(googleClientId)
         ));
+    }
+
+    private boolean isConfigured(String clientId) {
+        return clientId != null
+            && !clientId.isBlank()
+            && !clientId.contains("VOTRE_")
+            && !clientId.contains("YOUR_");
     }
 
     /**

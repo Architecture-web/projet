@@ -267,30 +267,38 @@
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    const token = localStorage.getItem('skillquest_token');
-    const userDataStr = localStorage.getItem('skillquest_user');
-
-    if (!token || !userDataStr) {
-      alert("Session entreprise expirée. Redirection vers l'accueil...");
-      window.location.href = "index.html";
+    function ensureAuthenticated() {
+      const currentToken = localStorage.getItem('skillquest_token');
+      const currentUser = localStorage.getItem('skillquest_user');
+      if (!currentToken || !currentUser) {
+        window.location.replace("index.html");
+        return false;
+      }
+      return true;
     }
 
-    try {
-      const user = JSON.parse(userDataStr);
-      document.getElementById('recruiterName').textContent = user.fullName || user.email || 'Entreprise';
-      document.getElementById('welcomeNameRecruiter').textContent = user.fullName || user.email || 'Entreprise Partenaire';
-      if (user.avatarUrl) {
-        document.getElementById('recruiterAvatar').src = user.avatarUrl;
+    window.addEventListener('pageshow', () => {
+      ensureAuthenticated();
+    });
+
+    if (ensureAuthenticated()) {
+      try {
+        const user = JSON.parse(localStorage.getItem('skillquest_user'));
+        document.getElementById('recruiterName').textContent = user.fullName || user.email || 'Entreprise';
+        document.getElementById('welcomeNameRecruiter').textContent = user.fullName || user.email || 'Entreprise Partenaire';
+        if (user.avatarUrl) {
+          document.getElementById('recruiterAvatar').src = user.avatarUrl;
+        }
+      } catch (e) {
+        console.error("Erreur de parsing", e);
       }
-    } catch (e) {
-      console.error("Erreur de parsing", e);
     }
 
     function logout() {
       localStorage.removeItem('skillquest_token');
       localStorage.removeItem('skillquest_refresh');
       localStorage.removeItem('skillquest_user');
-      window.location.href = "index.html";
+      window.location.replace("index.html");
     }
 
     lucide.createIcons();
